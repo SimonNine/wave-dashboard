@@ -1940,6 +1940,8 @@
       <button class="sidebar-grid-btn" id="bookmarksBtn" title="Bookmarks">⊟</button>
       <button class="sidebar-grid-btn" id="timerBtn" title="Timer">◴</button>
       <button class="sidebar-grid-btn" id="themePickerBtn" title="Themes">◈</button>
+      <button class="sidebar-grid-btn" id="backupExportBtn" title="Export full backup">⬇</button>
+      <label class="sidebar-grid-btn" id="backupImportBtn" title="Restore from backup" style="cursor:pointer;">⬆<input type="file" id="backupFileInput" accept=".json" style="display:none;"></label>
     </div>
   </div>
 
@@ -3531,6 +3533,8 @@
     document.getElementById('timerPause').addEventListener('click', pauseTimer);
     document.getElementById('timerReset').addEventListener('click', resetTimer);
     document.getElementById('themePickerBtn').addEventListener('click', openThemePicker);
+    document.getElementById('backupExportBtn').addEventListener('click', exportFullBackup);
+    document.getElementById('backupFileInput').addEventListener('change', e => { if (e.target.files[0]) importFullBackup(e.target.files[0]); e.target.value = ''; });
     document.getElementById('themePickerClose').addEventListener('click', () => document.getElementById('themePickerOverlay').classList.remove('open'));
     document.getElementById('themePickerOverlay').addEventListener('click', (e) => { if (e.target === document.getElementById('themePickerOverlay')) document.getElementById('themePickerOverlay').classList.remove('open'); });
     document.getElementById('themePickerDark').addEventListener('change', (e) => { isDarkMode = e.target.checked; applyTheme(); saveState(); });
@@ -4091,6 +4095,35 @@
     const a = document.createElement('a');
     a.href = url; a.download = `wave-export-${new Date().toISOString().split('T')[0]}.json`;
     a.click(); URL.revokeObjectURL(url);
+  }
+
+  function exportFullBackup() {
+    const backup = { _version: 1, _exportedAt: new Date().toISOString(), _source: location.href };
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('wave_')) backup[k] = localStorage.getItem(k);
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `wave-full-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  function importFullBackup(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const backup = JSON.parse(e.target.result);
+        let count = 0;
+        Object.entries(backup).forEach(([k, v]) => {
+          if (k.startsWith('wave_')) { localStorage.setItem(k, v); count++; }
+        });
+        alert(`Backup restored — ${count} data keys loaded. Reloading now.`);
+        location.reload();
+      } catch(err) { alert('Invalid backup file: ' + err.message); }
+    };
+    reader.readAsText(file);
   }
 
   // ===== BOOKMARKS =====
