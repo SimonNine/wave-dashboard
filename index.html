@@ -3639,8 +3639,8 @@
     try {
       if (gistId) {
         // Verify existing gist is accessible
-        const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json' } });
-        if (!res.ok) throw new Error('Could not access Gist — check the ID and token.');
+        const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': 'Bearer ' + pat, 'Accept': 'application/vnd.github.v3+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + (res.status === 404 ? 'Gist not found or token has no gist scope' : res.status === 401 ? 'Token invalid or expired' : 'check ID and token'));
         _gistId = gistId;
         localStorage.setItem(GIST_PAT_KEY, pat);
         localStorage.setItem(GIST_ID_KEY, gistId);
