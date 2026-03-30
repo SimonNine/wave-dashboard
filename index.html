@@ -1383,6 +1383,39 @@
     }
     .modal-details-grid .field-group { display: flex; flex-direction: column; gap: 4px; }
 
+    /* Gist sync */
+    #cloudSyncBtn { position: relative; }
+    #cloudSyncBtn .cloud-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--border); border: 1.5px solid var(--bg); transition: background 0.3s; }
+    #cloudSyncBtn .cloud-dot.synced { background: var(--success); }
+    #cloudSyncBtn .cloud-dot.syncing { background: #F4C150; animation: cloudPulse 1s infinite; }
+    #cloudSyncBtn .cloud-dot.error { background: var(--urgent); }
+    @keyframes cloudPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* Gist sync panel */
+    #gistSyncOverlay { position: fixed; inset: 0; z-index: 9990; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; }
+    #gistSyncOverlay.open { display: flex; }
+    #gistSyncPanel { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 480px; padding: 28px 32px; box-shadow: 0 16px 48px rgba(0,0,0,0.2); }
+    #gistSyncPanel h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+    #gistSyncPanel .gs-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; }
+    .gs-field { margin-bottom: 14px; }
+    .gs-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin-bottom: 5px; }
+    .gs-field input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; outline: none; }
+    .gs-field input:focus { border-color: var(--accent); }
+    .gs-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .gs-btn { padding: 9px 18px; border-radius: var(--radius-xs); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s; }
+    .gs-btn:hover { opacity: 0.85; }
+    .gs-btn-primary { background: var(--accent); color: white; }
+    .gs-btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .gs-btn-danger { background: #FDE8E8; color: var(--urgent); }
+    .gs-status { font-size: 12px; margin-top: 12px; padding: 8px 12px; border-radius: var(--radius-xs); display: none; }
+    .gs-status.success { display: block; background: #E8F5E9; color: var(--success); }
+    .gs-status.error { display: block; background: #FDE8E8; color: var(--urgent); }
+    .gs-info-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 10px 14px; font-size: 12px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+    .gs-info-box a { color: var(--accent); }
+    .gs-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+    .gs-connected-info { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+    .gs-connected-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+
     /* My Day carryover badge */
     .myday-carryover-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #C07800; background: #FFF3D6; border-radius: 8px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
 
@@ -1974,6 +2007,10 @@
         <button class="sync-btn" id="zenModeBtn" title="Zen mode" style="font-size:14px;">◎</button>
         <button class="sync-btn" id="batchToggleBtn" title="Multi-select" style="font-size:14px;">☑</button>
         <button class="sync-btn" id="exportBtn" title="Export JSON" style="font-size:14px;">↓</button>
+        <button class="sync-btn" id="cloudSyncBtn" title="Cloud sync settings" onclick="openGistSync()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          <div class="cloud-dot" id="cloudDot"></div>
+        </button>
         <button class="sync-btn" id="syncBtn" title="Sync with connected apps">
           ⟳
           <div class="sync-badge" id="syncBadge" style="display: none;">0</div>
@@ -2318,6 +2355,50 @@
       <button class="shortcuts-modal-close" id="shortcutsModalClose">×</button>
     </div>
     <div class="shortcuts-modal-body" id="shortcutsModalBody"></div>
+  </div>
+</div>
+
+<!-- Gist Sync Panel -->
+<div id="gistSyncOverlay">
+  <div id="gistSyncPanel">
+    <h2>☁ Cloud Sync</h2>
+    <p class="gs-subtitle">Sync your data to a private GitHub Gist — accessible from any browser.</p>
+    <div id="gsConnectedState" style="display:none;">
+      <div class="gs-connected-info"><span class="gs-connected-dot"></span><span id="gsConnectedLabel">Connected</span></div>
+      <div class="gs-info-box" style="margin-top:10px;">
+        <strong>Gist ID:</strong> <span id="gsGistIdDisplay" style="font-family:monospace;"></span><br>
+        <span style="color:var(--text-muted);font-size:11px;">Save this ID — you'll need it to connect from a new browser.</span>
+      </div>
+      <div class="gs-actions">
+        <button class="gs-btn gs-btn-primary" onclick="gistPush(true)">⬆ Push (overwrite cloud)</button>
+        <button class="gs-btn gs-btn-secondary" onclick="gistPull(true)">⬇ Pull (overwrite local)</button>
+        <button class="gs-btn gs-btn-danger" onclick="gistDisconnect()">Disconnect</button>
+      </div>
+      <div id="gsSyncStatus" class="gs-status"></div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:14px;">Auto-syncs 8 seconds after any change.</p>
+    </div>
+    <div id="gsSetupState">
+      <div class="gs-info-box">
+        1. Go to <strong>github.com/settings/tokens</strong> → Generate new token (classic)<br>
+        2. Name it <em>Wave Sync</em>, tick only <strong>gist</strong> scope, set 1 year expiry<br>
+        3. Copy the token and paste below
+      </div>
+      <div class="gs-field">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="gsPatInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <hr class="gs-divider">
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;"><strong>First time?</strong> Leave Gist ID blank — we'll create one for you.<br><strong>Returning from another browser?</strong> Paste your existing Gist ID.</p>
+      <div class="gs-field">
+        <label>Gist ID <span style="font-weight:400;">(optional — leave blank to create new)</span></label>
+        <input type="text" id="gsGistIdInput" placeholder="e.g. a1b2c3d4e5f6..." autocomplete="off">
+      </div>
+      <div class="gs-actions">
+        <button class="gs-btn gs-btn-primary" onclick="gistConnect()">Connect</button>
+        <button class="gs-btn gs-btn-secondary" onclick="closeGistSync()">Cancel</button>
+      </div>
+      <div id="gsSetupStatus" class="gs-status"></div>
+    </div>
   </div>
 </div>
 
@@ -3427,6 +3508,7 @@
       listSortColumn, listSortAsc, listColumnFilters, isDarkMode, currentTheme, isCompact, isZenBoard, customTheme
     };
     localStorage.setItem('wave_settings', JSON.stringify(settings));
+    schedulePush();
   }
 
   // ===== MY DAY: date stamping + nightly sweep =====
@@ -3478,6 +3560,178 @@
     setTimeout(() => { sweepMyDay(); scheduleMidnightSweep(); }, msUntilMidnight);
   }
 
+  // ===== GIST CLOUD SYNC =====
+  const GIST_PAT_KEY  = 'wave_gist_pat';
+  const GIST_ID_KEY   = 'wave_gist_id';
+  const GIST_FILENAME = 'wave-data.json';
+  let _gistSaveTimer  = null;
+  let _gistPat        = localStorage.getItem(GIST_PAT_KEY) || '';
+  let _gistId         = localStorage.getItem(GIST_ID_KEY)  || '';
+
+  function gistHeaders() {
+    return { 'Authorization': 'token ' + _gistPat, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+  }
+
+  function setCloudDot(state) { // 'idle' | 'syncing' | 'synced' | 'error'
+    const dot = document.getElementById('cloudDot');
+    if (!dot) return;
+    dot.className = 'cloud-dot';
+    if (state !== 'idle') dot.classList.add(state);
+  }
+
+  function buildGistPayload() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('wave_') && k !== GIST_PAT_KEY) data[k] = localStorage.getItem(k);
+    }
+    data._syncedAt = Date.now();
+    return data;
+  }
+
+  async function gistPush(manual = false) {
+    if (!_gistPat || !_gistId) return;
+    setCloudDot('syncing');
+    try {
+      const body = JSON.stringify({ files: { [GIST_FILENAME]: { content: JSON.stringify(buildGistPayload()) } } });
+      const res = await fetch(`https://api.github.com/gists/${_gistId}`, { method: 'PATCH', headers: gistHeaders(), body });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setCloudDot('synced');
+      setTimeout(() => setCloudDot('idle'), 3000);
+      if (manual) { const el = document.getElementById('gsSyncStatus'); if (el) { el.textContent = '✓ Pushed to cloud successfully.'; el.className = 'gs-status success'; } }
+    } catch(e) {
+      setCloudDot('error');
+      if (manual) { const el = document.getElementById('gsSyncStatus'); if (el) { el.textContent = 'Push failed: ' + e.message; el.className = 'gs-status error'; } }
+    }
+  }
+
+  async function gistPull(manual = false) {
+    if (!_gistPat || !_gistId) return;
+    setCloudDot('syncing');
+    try {
+      const res = await fetch(`https://api.github.com/gists/${_gistId}`, { headers: gistHeaders() });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const gist = await res.json();
+      const raw = gist.files?.[GIST_FILENAME]?.content;
+      if (!raw) throw new Error('No data file found in Gist');
+      const data = JSON.parse(raw);
+      let count = 0;
+      Object.entries(data).forEach(([k, v]) => { if (k.startsWith('wave_') && k !== GIST_PAT_KEY) { localStorage.setItem(k, v); count++; } });
+      setCloudDot('synced');
+      setTimeout(() => setCloudDot('idle'), 3000);
+      if (manual) {
+        const el = document.getElementById('gsSyncStatus'); if (el) { el.textContent = '✓ Pulled from cloud. Reloading...'; el.className = 'gs-status success'; }
+        setTimeout(() => location.reload(), 1200);
+      }
+    } catch(e) {
+      setCloudDot('error');
+      if (manual) { const el = document.getElementById('gsSyncStatus'); if (el) { el.textContent = 'Pull failed: ' + e.message; el.className = 'gs-status error'; } }
+    }
+  }
+
+  async function gistConnect() {
+    const pat = document.getElementById('gsPatInput').value.trim();
+    const gistId = document.getElementById('gsGistIdInput').value.trim();
+    const statusEl = document.getElementById('gsSetupStatus');
+    if (!pat) { statusEl.textContent = 'Please enter your Personal Access Token.'; statusEl.className = 'gs-status error'; return; }
+    statusEl.textContent = 'Connecting...'; statusEl.className = 'gs-status syncing'; statusEl.style.display = 'block';
+    _gistPat = pat;
+    try {
+      if (gistId) {
+        // Verify existing gist is accessible
+        const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json' } });
+        if (!res.ok) throw new Error('Could not access Gist — check the ID and token.');
+        _gistId = gistId;
+        localStorage.setItem(GIST_PAT_KEY, pat);
+        localStorage.setItem(GIST_ID_KEY, gistId);
+        // Pull remote data
+        await gistPull();
+        statusEl.textContent = '✓ Connected! Pulling your data and reloading...'; statusEl.className = 'gs-status success';
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        // Create a new private gist
+        const payload = buildGistPayload();
+        const body = JSON.stringify({ description: 'Wave Dashboard Data', public: false, files: { [GIST_FILENAME]: { content: JSON.stringify(payload) } } });
+        const res = await fetch('https://api.github.com/gists', { method: 'POST', headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }, body });
+        if (!res.ok) throw new Error('Could not create Gist — check your token has gist scope.');
+        const gist = await res.json();
+        _gistId = gist.id;
+        localStorage.setItem(GIST_PAT_KEY, pat);
+        localStorage.setItem(GIST_ID_KEY, gist.id);
+        statusEl.textContent = '✓ Gist created! ID: ' + gist.id; statusEl.className = 'gs-status success';
+        renderGistPanel();
+      }
+    } catch(e) {
+      _gistPat = localStorage.getItem(GIST_PAT_KEY) || '';
+      statusEl.textContent = e.message; statusEl.className = 'gs-status error';
+    }
+  }
+
+  function gistDisconnect() {
+    showConfirm('Disconnect cloud sync?', 'Your local data stays intact. You can reconnect anytime.', () => {
+      _gistPat = ''; _gistId = '';
+      localStorage.removeItem(GIST_PAT_KEY); localStorage.removeItem(GIST_ID_KEY);
+      setCloudDot('idle'); renderGistPanel();
+    });
+  }
+
+  function schedulePush() {
+    if (!_gistPat || !_gistId) return;
+    clearTimeout(_gistSaveTimer);
+    _gistSaveTimer = setTimeout(() => gistPush(), 8000);
+    setCloudDot('syncing');
+  }
+
+  async function initGistSync() {
+    if (!_gistPat || !_gistId) { setCloudDot('idle'); return; }
+    setCloudDot('syncing');
+    try {
+      const res = await fetch(`https://api.github.com/gists/${_gistId}`, { headers: gistHeaders() });
+      if (!res.ok) throw new Error();
+      const gist = await res.json();
+      const raw = gist.files?.[GIST_FILENAME]?.content;
+      if (!raw) throw new Error();
+      const remoteData = JSON.parse(raw);
+      const remoteSyncedAt = remoteData._syncedAt || 0;
+      const localSyncedAt = parseInt(localStorage.getItem('wave__syncedAt') || '0', 10);
+      if (remoteSyncedAt > localSyncedAt) {
+        Object.entries(remoteData).forEach(([k, v]) => { if (k.startsWith('wave_') && k !== GIST_PAT_KEY) localStorage.setItem(k, v); });
+        localStorage.setItem('wave__syncedAt', String(remoteSyncedAt));
+        location.reload();
+        return;
+      }
+      setCloudDot('synced');
+      setTimeout(() => setCloudDot('idle'), 3000);
+    } catch(e) { setCloudDot('error'); }
+  }
+
+  function openGistSync() { document.getElementById('gistSyncOverlay').classList.add('open'); renderGistPanel(); }
+  function closeGistSync() { document.getElementById('gistSyncOverlay').classList.remove('open'); }
+
+  function renderGistPanel() {
+    const connected = !!(localStorage.getItem(GIST_PAT_KEY) && localStorage.getItem(GIST_ID_KEY));
+    document.getElementById('gsConnectedState').style.display = connected ? '' : 'none';
+    document.getElementById('gsSetupState').style.display = connected ? 'none' : '';
+    if (connected) {
+      const id = localStorage.getItem(GIST_ID_KEY);
+      document.getElementById('gsGistIdDisplay').textContent = id;
+      document.getElementById('gsConnectedLabel').textContent = 'Connected to Gist';
+      document.getElementById('gsSyncStatus').style.display = 'none';
+    } else {
+      document.getElementById('gsPatInput').value = '';
+      document.getElementById('gsGistIdInput').value = '';
+      document.getElementById('gsSetupStatus').style.display = 'none';
+    }
+  }
+
+  document.getElementById('gistSyncOverlay').addEventListener('click', e => { if (e.target === document.getElementById('gistSyncOverlay')) closeGistSync(); });
+  window.openGistSync = openGistSync;
+  window.closeGistSync = closeGistSync;
+  window.gistConnect = gistConnect;
+  window.gistPush = gistPush;
+  window.gistPull = gistPull;
+  window.gistDisconnect = gistDisconnect;
+
   // ===== INIT =====
   function updateLiveTime() {
     const now = new Date();
@@ -3498,6 +3752,7 @@
 
   function init() {
     loadState();
+    initGistSync();
     sweepMyDay();
     saveState(); // Persist any migrations (new spaces, imported notes)
     scheduleMidnightSweep();
