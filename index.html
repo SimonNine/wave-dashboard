@@ -3569,7 +3569,7 @@
   let _gistId         = localStorage.getItem(GIST_ID_KEY)  || '';
 
   function gistHeaders() {
-    return { 'Authorization': 'token ' + _gistPat, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+    return { 'Authorization': 'Bearer ' + _gistPat, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' };
   }
 
   function setCloudDot(state) { // 'idle' | 'syncing' | 'synced' | 'error'
@@ -3601,7 +3601,9 @@
       if (manual) { const el = document.getElementById('gsSyncStatus'); if (el) { el.textContent = '✓ Pushed to cloud successfully.'; el.className = 'gs-status success'; } }
     } catch(e) {
       setCloudDot('error');
+      const msg = 'Cloud sync push failed: ' + e.message + '. Click ☁ to reconnect.';
       if (manual) { const el = document.getElementById('gsSyncStatus'); if (el) { el.textContent = 'Push failed: ' + e.message; el.className = 'gs-status error'; } }
+      else { showToast(msg); }
     }
   }
 
