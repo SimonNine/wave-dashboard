@@ -7703,7 +7703,8 @@
   function deleteMeetingNoteById(noteId) {
     const note = meetingNotes.find(n => n.id === noteId);
     if (!note) return;
-    showConfirm(`Delete "${note.name || 'Untitled'}"?`, 'This note will be permanently removed.', () => {
+    showConfirm(`Delete "${note.name || 'Untitled'}"?`, 'This note will move to Trash for 30 days.', () => {
+      trash.push({ ...note, source: 'meeting', deletedAt: Date.now() });
       meetingNotes = meetingNotes.filter(n => n.id !== noteId);
       saveState(); renderMeetingNotes();
     });
