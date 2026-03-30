@@ -1554,6 +1554,7 @@
     .mn-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
     .mn-table tr:hover td { background: var(--surface-hover); }
     .mn-table .mn-row { cursor: pointer; }
+    .mn-table .mn-row .mn-del-btn { opacity: 0.25; }
     .mn-table .mn-row:hover .mn-del-btn { opacity: 0.5; }
     .mn-table .mn-row .mn-del-btn:hover { opacity: 1 !important; color: var(--urgent); }
     .mn-space-header td { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); background: var(--surface); padding: 8px 12px; }
@@ -7414,7 +7415,7 @@
         if ((b.starred || false) !== (a.starred || false)) return (b.starred ? 1 : 0) - (a.starred ? 1 : 0);
         return (b.date || '').localeCompare(a.date || '');
       });
-      html += `<tr class="mn-space-header"><td colspan="6">${sp.icon || '📁'} ${sp.name}</td></tr>`;
+      html += `<tr class="mn-space-header"><td colspan="7">${sp.icon || '📁'} ${sp.name}</td></tr>`;
       spNotes.forEach(note => {
         const taskCount = (note.tasks || []).length;
         const attendees = (note.attendees || []).slice(0, 3).map(a => `<span class="mn-attendees-pill">${a}</span>`).join('') + ((note.attendees || []).length > 3 ? `<span class="mn-attendees-pill">+${note.attendees.length - 3}</span>` : '');
