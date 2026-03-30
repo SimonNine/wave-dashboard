@@ -1554,6 +1554,8 @@
     .mn-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
     .mn-table tr:hover td { background: var(--surface-hover); }
     .mn-table .mn-row { cursor: pointer; }
+    .mn-table .mn-row:hover .mn-del-btn { opacity: 0.5; }
+    .mn-table .mn-row .mn-del-btn:hover { opacity: 1 !important; color: var(--urgent); }
     .mn-space-header td { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); background: var(--surface); padding: 8px 12px; }
     .mn-date { color: var(--text-muted); font-size: 12px; }
     .mn-attendees-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; background: var(--surface); font-size: 11px; color: var(--text-secondary); margin-right: 4px; }
@@ -7402,7 +7404,7 @@
 
     const tagColors = ['mn-tag-green', 'mn-tag-blue', 'mn-tag-purple', 'mn-tag-orange', 'mn-tag-red', 'mn-tag-default'];
 
-    html += '<table class="mn-table"><thead><tr><th></th><th>Note</th><th>Tags</th><th>Date</th><th>Attendees</th><th>Tasks</th></tr></thead><tbody>';
+    html += '<table class="mn-table"><thead><tr><th></th><th>Note</th><th>Tags</th><th>Date</th><th>Attendees</th><th>Tasks</th><th></th></tr></thead><tbody>';
     spaceList.forEach(sp => {
       const spNotes = meetingNotes.filter(n => (n.space || 'unassigned') === sp.id);
       if (spNotes.length === 0) return;
@@ -7427,6 +7429,7 @@
           <td class="mn-date">${note.date || ''}</td>
           <td>${attendees || '<span style="color:var(--text-muted);font-size:12px;">—</span>'}</td>
           <td><span class="mn-task-count">${taskCount > 0 ? '◫ ' + taskCount : '—'}</span></td>
+          <td style="width:28px;text-align:center;"><button onclick="event.stopPropagation();deleteMeetingNoteById('${note.id}')" title="Delete note" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity 0.15s;" class="mn-del-btn">✕</button></td>
         </tr>`;
       });
     });
@@ -7437,6 +7440,15 @@
   function toggleMnStar(noteId) {
     const note = meetingNotes.find(n => n.id === noteId);
     if (note) { note.starred = !note.starred; saveState(); renderMeetingNotes(); }
+  }
+
+  function deleteMeetingNoteById(noteId) {
+    const note = meetingNotes.find(n => n.id === noteId);
+    if (!note) return;
+    showConfirm(`Delete "${note.name || 'Untitled'}"?`, 'This note will be permanently removed.', () => {
+      meetingNotes = meetingNotes.filter(n => n.id !== noteId);
+      saveState(); renderMeetingNotes();
+    });
   }
 
   let editingMeetingNoteId = null;
