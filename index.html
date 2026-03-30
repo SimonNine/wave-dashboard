@@ -1640,9 +1640,25 @@
     .mn-fmt-btn.active { background: var(--accent-light); color: var(--accent); }
     .mn-fmt-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
 
-    /* Main notes area — the star of the show */
-    .mn-notes-area { width: 100%; border: none; outline: none; background: transparent; color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.75; resize: none; min-height: 400px; padding: 0; }
-    .mn-notes-area::placeholder { color: var(--border); }
+    /* Main notes area + agenda area — contenteditable rich text */
+    .mn-notes-area, .mn-agenda-area {
+      width: 100%; border: none; outline: none; background: transparent; color: var(--text);
+      font-family: inherit; font-size: 15px; line-height: 1.75; min-height: 40px; padding: 0;
+    }
+    .mn-notes-area { min-height: 400px; }
+    .mn-notes-area:empty:before, .mn-agenda-area:empty:before { content: attr(data-placeholder); color: var(--border); pointer-events: none; }
+
+    /* Rendered formatting inside contenteditable areas */
+    .mn-notes-area strong, .mn-agenda-area strong { font-weight: 700; }
+    .mn-notes-area em, .mn-agenda-area em { font-style: italic; }
+    .mn-notes-area u, .mn-agenda-area u { text-decoration: underline; }
+    .mn-notes-area s, .mn-agenda-area s { text-decoration: line-through; }
+    .mn-notes-area h2, .mn-agenda-area h2 { font-size: 18px; font-weight: 700; color: var(--text); margin: 16px 0 6px; line-height: 1.3; }
+    .mn-notes-area ul, .mn-agenda-area ul { padding-left: 22px; margin: 4px 0; }
+    .mn-notes-area ol, .mn-agenda-area ol { padding-left: 22px; margin: 4px 0; }
+    .mn-notes-area li, .mn-agenda-area li { margin: 2px 0; }
+    .mn-notes-area blockquote, .mn-agenda-area blockquote { border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px; color: var(--text-secondary); font-style: italic; }
+    .mn-notes-area hr, .mn-agenda-area hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
     /* Agenda area — subtle, collapsible */
     .mn-agenda-section { margin-bottom: 16px; }
@@ -1650,8 +1666,6 @@
     .mn-agenda-toggle:hover { color: var(--text); }
     .mn-agenda-toggle svg { transition: transform 0.2s; }
     .mn-agenda-toggle.expanded svg { transform: rotate(90deg); }
-    .mn-agenda-area { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; line-height: 1.6; resize: vertical; min-height: 60px; padding: 10px 12px; margin-top: 6px; box-sizing: border-box; outline: none; }
-    .mn-agenda-area:focus { border-color: var(--accent); }
 
     /* Tasks section — clean cards */
     .mn-tasks-section { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
@@ -7515,12 +7529,12 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         Agenda / Items to Discuss
       </button>
-      <textarea class="mn-agenda-area" id="mnAgenda" placeholder="Things you want to cover..." style="${(note && note.agenda) ? '' : 'display:none;'}">${note ? (note.agenda || '') : ''}</textarea>
+      <div class="mn-agenda-area" id="mnAgenda" contenteditable="true" data-placeholder="Things you want to cover..." style="${(note && note.agenda) ? '' : 'display:none;'}">${note ? (note.agenda || '') : ''}</div>
     </div>
 
     ${fmtBar}
 
-    <textarea class="mn-notes-area" id="mnNotes" placeholder="Start writing your notes here..." oninput="updateMnWordCount()">${note ? (note.notes || '') : ''}</textarea>
+    <div class="mn-notes-area" id="mnNotes" contenteditable="true" data-placeholder="Start writing your notes here..." oninput="updateMnWordCount()">${note ? (note.notes || '') : ''}</div>
 
     <div class="mn-tasks-section">
       <div class="mn-tasks-section-header">
@@ -7553,22 +7567,14 @@
       document.getElementById('mnUpdatedAt').textContent = '';
     }
 
-    // Auto-resize notes textarea
+    // Keyboard shortcuts in notes area (contenteditable)
     const notesEl = document.getElementById('mnNotes');
-    const autoResize = () => { notesEl.style.height = 'auto'; notesEl.style.height = Math.max(400, notesEl.scrollHeight) + 'px'; };
-    notesEl.addEventListener('input', autoResize);
-    setTimeout(autoResize, 0);
-
-    // Keyboard shortcuts in notes area
     notesEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const start = notesEl.selectionStart;
-        const end = notesEl.selectionEnd;
-        notesEl.value = notesEl.value.substring(0, start) + '    ' + notesEl.value.substring(end);
-        notesEl.selectionStart = notesEl.selectionEnd = start + 4;
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); mnFmt('underline'); }
     });
+    notesEl.addEventListener('input', updateMnWordCount);
 
     clearDirty();
     document.getElementById('mnModalOverlay').classList.add('open');
@@ -7722,7 +7728,7 @@
 
   // Word count
   function updateMnWordCount() {
-    const text = (document.getElementById('mnNotes')?.value || '');
+    const text = (document.getElementById('mnNotes')?.innerText || '');
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
     const wcEl = document.getElementById('mnWordCount');
@@ -7746,38 +7752,37 @@
     if (expanded) area.focus();
   }
 
-  // Text formatting helpers (insert markdown-style formatting into textarea)
+  // Rich text formatting — operates on whichever contenteditable area is focused
   function mnFmt(type) {
-    const ta = document.getElementById('mnNotes');
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const text = ta.value;
-    const selected = text.substring(start, end);
-    let insert = '';
-    let cursorOffset = 0;
+    // Find the active editor (notes or agenda)
+    const focused = document.activeElement;
+    const notesEl = document.getElementById('mnNotes');
+    const agendaEl = document.getElementById('mnAgenda');
+    const editor = (focused === notesEl || focused === agendaEl) ? focused : notesEl;
+    if (!editor) return;
+    editor.focus();
 
     switch (type) {
-      case 'bold': insert = '**' + (selected || 'bold text') + '**'; cursorOffset = selected ? 0 : -2; break;
-      case 'italic': insert = '_' + (selected || 'italic text') + '_'; cursorOffset = selected ? 0 : -1; break;
-      case 'underline': insert = '__' + (selected || 'underlined') + '__'; cursorOffset = selected ? 0 : -2; break;
-      case 'strikethrough': insert = '~~' + (selected || 'strikethrough') + '~~'; cursorOffset = selected ? 0 : -2; break;
-      case 'heading': insert = '\n## ' + (selected || 'Heading') + '\n'; break;
-      case 'bullet': insert = '\n- ' + (selected || 'List item'); break;
-      case 'numbered': insert = '\n1. ' + (selected || 'List item'); break;
-      case 'checklist': insert = '\n[ ] ' + (selected || 'To-do item'); break;
-      case 'quote': insert = '\n> ' + (selected || 'Quote'); break;
-      case 'divider': insert = '\n---\n'; break;
+      case 'bold':        document.execCommand('bold', false); break;
+      case 'italic':      document.execCommand('italic', false); break;
+      case 'underline':   document.execCommand('underline', false); break;
+      case 'strikethrough': document.execCommand('strikeThrough', false); break;
+      case 'heading':     document.execCommand('formatBlock', false, 'h2'); break;
+      case 'bullet':      document.execCommand('insertUnorderedList', false); break;
+      case 'numbered':    document.execCommand('insertOrderedList', false); break;
+      case 'quote':       document.execCommand('formatBlock', false, 'blockquote'); break;
+      case 'divider':
+        document.execCommand('insertHTML', false, '<hr>'); break;
+      case 'checklist': {
+        const sel = window.getSelection();
+        const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+        const label = (range && !range.collapsed) ? range.toString() : 'To-do item';
+        document.execCommand('insertHTML', false,
+          `<div style="display:flex;align-items:baseline;gap:6px;"><input type="checkbox" style="margin-top:3px;accent-color:var(--accent);"> <span>${label}</span></div>`);
+        break;
+      }
     }
-
-    ta.value = text.substring(0, start) + insert + text.substring(end);
-    const newPos = start + insert.length + cursorOffset;
-    ta.selectionStart = ta.selectionEnd = newPos;
-    ta.focus();
     updateMnWordCount();
-    // Auto-resize
-    ta.style.height = 'auto';
-    ta.style.height = Math.max(400, ta.scrollHeight) + 'px';
   }
 
   function addMnTask() {
@@ -7852,8 +7857,8 @@
     const name = document.getElementById('mnName').value.trim();
     const space = document.getElementById('mnSpace').value;
     const date = document.getElementById('mnDate').value;
-    const agenda = document.getElementById('mnAgenda')?.value || '';
-    const notes = document.getElementById('mnNotes').value;
+    const agenda = document.getElementById('mnAgenda')?.innerHTML || '';
+    const notes = document.getElementById('mnNotes').innerHTML;
     const attendees = [...window._mnTempAttendees];
     const tags = [...(window._mnTempTags || [])];
     const pinned = window._mnTempPinned || false;
@@ -7923,8 +7928,8 @@
     // Gather current form data even if not saved yet
     const name = document.getElementById('mnName')?.value || (note ? note.name : 'Untitled');
     const attendees = window._mnTempAttendees || (note ? note.attendees : []);
-    const agenda = document.getElementById('mnAgenda')?.value || (note ? note.agenda : '');
-    const notes = document.getElementById('mnNotes')?.value || (note ? note.notes : '');
+    const agenda = document.getElementById('mnAgenda')?.innerText || (note ? note.agenda : '');
+    const notes = document.getElementById('mnNotes')?.innerText || (note ? note.notes : '');
     const noteTasks = (window._mnTempTasks || (note ? note.tasks : [])).map(t => `- ${t.title}`).join('\n');
     const prompt = `[Wave — Draft Follow-Up Email]\n\nPlease draft a follow-up email for this meeting:\n\nMeeting: ${name}\nAttendees: ${attendees.join(', ')}\nAgenda: ${agenda || 'N/A'}\nNotes: ${notes || 'N/A'}\n${noteTasks ? 'Action Items:\n' + noteTasks : ''}\n\nPlease create a Gmail draft using the gmail_create_draft tool — do NOT send it, just save as a draft so I can review before sending. Include a summary of what was discussed, key decisions, and next steps. Address it to the attendees listed. Keep the tone professional.`;
     navigator.clipboard.writeText(prompt).then(() => {
@@ -7937,8 +7942,8 @@
     const note = noteId ? meetingNotes.find(n => n.id === noteId) : null;
     const name = document.getElementById('mnName')?.value || (note ? note.name : 'Untitled');
     const attendees = window._mnTempAttendees || (note ? note.attendees : []);
-    const agenda = document.getElementById('mnAgenda')?.value || (note ? note.agenda : '');
-    const notes = document.getElementById('mnNotes')?.value || (note ? note.notes : '');
+    const agenda = document.getElementById('mnAgenda')?.innerText || (note ? note.agenda : '');
+    const notes = document.getElementById('mnNotes')?.innerText || (note ? note.notes : '');
     const noteTasks = (window._mnTempTasks || (note ? note.tasks : [])).map(t => `- [${t.done ? 'x' : ' '}] ${t.title}`).join('\n');
     const taskSummary = tasks.filter(t => t.column !== 'done').slice(0, 10).map(t => `- ${t.title} (${t.priority}, ${t.column})`).join('\n');
     const prompt = `[Wave — Meeting Debrief]\n\nPlease generate a meeting debrief for:\n\nMeeting: ${name}\nAttendees: ${attendees.join(', ')}\nAgenda: ${agenda || 'N/A'}\nNotes: ${notes || 'N/A'}\n${noteTasks ? 'Existing Action Items:\n' + noteTasks : ''}\n\nPlease:\n1. Summarise key discussion points and decisions\n2. List all action items with owners\n3. Suggest any follow-up tasks I should create in Wave\n4. If appropriate, draft a Slack message summary for #all-team\n\nMy current active tasks for context:\n${taskSummary}`;
