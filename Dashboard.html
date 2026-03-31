@@ -4679,8 +4679,12 @@
     trashViewEl.querySelectorAll('[data-action="permanent"]').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
-        trash.splice(idx, 1);
-        saveState(); renderTrash(); updateTrashBadge();
+        const item = trash[idx];
+        const itemName = (item && (item.title || item.name)) || 'this item';
+        showConfirm('Permanently delete?', `"${itemName}" will be gone forever. This cannot be undone.`, () => {
+          trash.splice(idx, 1);
+          saveState(); renderTrash(); updateTrashBadge();
+        });
       });
     });
     // Invoice restore from trash
@@ -4699,8 +4703,12 @@
     trashViewEl.querySelectorAll('[data-inv-perm-idx]').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.invPermIdx);
-        deletedInvoices.splice(idx, 1);
-        saveState(); renderTrash(); updateTrashBadge();
+        const di = deletedInvoices[idx];
+        const invName = di && di.invoice ? `Invoice #${di.invoice.invoiceNo || '?'}` : 'this invoice';
+        showConfirm('Permanently delete?', `"${invName}" will be gone forever. This cannot be undone.`, () => {
+          deletedInvoices.splice(idx, 1);
+          saveState(); renderTrash(); updateTrashBadge();
+        });
       });
     });
     const restoreAllBtn = trashViewEl.querySelector('#trashRestoreAll');
