@@ -4621,7 +4621,7 @@
         const daysLeft = Math.ceil((item.deletedAt + 30 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
         html += `<div class="trash-card">
           <div class="trash-card-content">
-            <div class="trash-card-title">${(item.title || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+            <div class="trash-card-title">${(item.title || item.name || 'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
             <div class="trash-card-meta">
               <span class="priority-badge priority-${item.priority}">${item.priority}</span>
               ${item.due ? '<span>' + item.due + '</span>' : ''}
