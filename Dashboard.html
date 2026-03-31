@@ -647,6 +647,11 @@
     .color-picker-option:hover { transform: scale(1.1); }
     .color-picker-option.selected { border-color: var(--text); }
     .column-cards { display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; padding-right: 4px; }
+    .column-sort-btn { font-size: 11px; color: var(--text-muted); background: none; border: 1px solid transparent; border-radius: var(--radius-xs); padding: 2px 5px; cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
+    .column-sort-btn:hover { color: var(--accent); border-color: var(--border); }
+    .column-sort-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
+    .task-card.drag-insert-before { border-top: 2px solid var(--accent) !important; margin-top: -2px; }
+    .task-card.drag-insert-after { border-bottom: 2px solid var(--accent) !important; margin-bottom: -2px; }
     .column-cards::-webkit-scrollbar { width: 6px; }
     .column-cards::-webkit-scrollbar-track { background: transparent; }
     .column-cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -2773,6 +2778,7 @@
   let activeSourceFilters = new Set();
   let listSortColumn = null;
   let listSortAsc = true;
+  let columnSortState = {}; // { columnId: 'asc' | 'desc' | null }
   let listColumnFilters = {};
   let isDarkMode = false;
   let currentTheme = 'default';
@@ -6702,7 +6708,24 @@
 
       const count = document.createElement('div');
       count.className = 'column-count';
-      count.textContent = filtered.filter(t => t.column === column.id).length;
+      const colTasks = filtered.filter(t => t.column === column.id);
+      count.textContent = colTasks.length;
+
+      // Sort button
+      const sortBtn = document.createElement('button');
+      sortBtn.className = 'column-sort-btn' + (columnSortState[column.id] ? ' active' : '');
+      const sortLabel = columnSortState[column.id] === 'asc' ? '▲' : columnSortState[column.id] === 'desc' ? '▼' : '↕';
+      sortBtn.textContent = sortLabel;
+      sortBtn.title = 'Sort by date';
+      sortBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cur = columnSortState[column.id];
+        if (!cur) columnSortState[column.id] = 'asc';
+        else if (cur === 'asc') columnSortState[column.id] = 'desc';
+        else delete columnSortState[column.id];
+        renderBoard();
+      });
+
       const menu = document.createElement('button');
       menu.className = 'column-menu';
       menu.textContent = '⋮';
@@ -6711,12 +6734,27 @@
       header.appendChild(dragHandle);
       header.appendChild(titleSection);
       header.appendChild(count);
+      header.appendChild(sortBtn);
       header.appendChild(menu);
+
+      // Sort tasks for this column
+      let sortedColTasks = colTasks.slice();
+      const sortDir = columnSortState[column.id];
+      if (sortDir) {
+        sortedColTasks.sort((a, b) => {
+          const aDate = a.due || '';
+          const bDate = b.due || '';
+          return sortDir === 'asc' ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate);
+        });
+      } else {
+        // Sort by boardOrder when no date sort active
+        sortedColTasks.sort((a, b) => (a.boardOrder || 0) - (b.boardOrder || 0));
+      }
 
       const cards = document.createElement('div');
       cards.className = 'column-cards';
       cards.dataset.columnId = column.id;
-      filtered.filter(t => t.column === column.id).forEach(task => cards.appendChild(createTaskCard(task)));
+      sortedColTasks.forEach(task => cards.appendChild(createTaskCard(task)));
 
       // Column reorder drop handler (shared by header, cards, col)
       function handleColumnDrop(e) {
@@ -6740,16 +6778,49 @@
         }
       }
 
-      // Task card drops on the cards container
+      // Task card drops on the cards container — with positional reorder
+      function clearInsertIndicators() {
+        cards.querySelectorAll('.drag-insert-before, .drag-insert-after').forEach(el => {
+          el.classList.remove('drag-insert-before', 'drag-insert-after');
+        });
+      }
+      function getDropIndex(e) {
+        const cardEls = Array.from(cards.querySelectorAll('.task-card:not(.dragging)'));
+        for (let i = 0; i < cardEls.length; i++) {
+          const rect = cardEls[i].getBoundingClientRect();
+          if (e.clientY < rect.top + rect.height / 2) return i;
+        }
+        return cardEls.length;
+      }
       cards.addEventListener('dragover', (e) => {
-        if (e.dataTransfer.types.includes('text/task-id')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; cards.classList.add('drag-over'); }
-        else if (e.dataTransfer.types.includes('text/column-id')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+        if (e.dataTransfer.types.includes('text/task-id')) {
+          e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+          clearInsertIndicators();
+          const cardEls = Array.from(cards.querySelectorAll('.task-card:not(.dragging)'));
+          const idx = getDropIndex(e);
+          if (cardEls.length === 0) {
+            cards.classList.add('drag-over');
+          } else if (idx < cardEls.length) {
+            cardEls[idx].classList.add('drag-insert-before');
+          } else if (cardEls.length > 0) {
+            cardEls[cardEls.length - 1].classList.add('drag-insert-after');
+          }
+        } else if (e.dataTransfer.types.includes('text/column-id')) {
+          e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+        }
       });
-      cards.addEventListener('dragleave', () => cards.classList.remove('drag-over'));
+      cards.addEventListener('dragleave', (e) => {
+        if (!cards.contains(e.relatedTarget)) {
+          cards.classList.remove('drag-over');
+          clearInsertIndicators();
+        }
+      });
       cards.addEventListener('drop', (e) => {
         const taskId = e.dataTransfer.getData('text/task-id');
+        cards.classList.remove('drag-over');
+        clearInsertIndicators();
         if (taskId) {
-          e.preventDefault(); e.stopPropagation(); cards.classList.remove('drag-over');
+          e.preventDefault(); e.stopPropagation();
           const task = tasks.find(t => t.id === taskId);
           if (task) {
             const wasDone = task.column === 'done';
@@ -6761,6 +6832,16 @@
               fireCelebration();
               handleRecurringTask(task);
             }
+            // Calculate boardOrder for drop position
+            const dropIdx = getDropIndex(e);
+            const colTaskIds = sortedColTasks.filter(t => t.id !== taskId).map(t => t.id);
+            colTaskIds.splice(dropIdx, 0, taskId);
+            colTaskIds.forEach((id, i) => {
+              const t = tasks.find(x => x.id === id);
+              if (t) t.boardOrder = i;
+            });
+            // Clear any date sort on this column so manual order is visible
+            delete columnSortState[column.id];
             renderBoard(); saveState();
           }
         } else {
