@@ -1741,6 +1741,8 @@
     .mn-task-list { display: flex; flex-direction: column; gap: 6px; }
     .mn-task-item { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--surface); transition: border-color 0.15s; }
     .mn-task-item:hover { border-color: var(--accent); }
+    .mn-task-tile { transition: all 0.15s; }
+    .mn-task-tile:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.06); transform: translateY(-1px); }
     .mn-task-item input, .mn-task-item select { padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; }
     .mn-task-item .mn-task-title-input { flex: 1; }
     .mn-task-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px; }
@@ -9229,6 +9231,29 @@
     });
   }
 
+  // Open a task from within a meeting note — close the note modal, open task modal, return to note on close
+  function openTaskFromMeetingNote(task) {
+    const noteId = editingMeetingNoteId;
+    // Save current note state first
+    saveMeetingNote();
+    // Now open the task modal
+    openModal(task);
+
+    // Patch: when task modal closes, reopen the meeting note
+    const origClose = modalOverlay.classList;
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === 'class' && !modalOverlay.classList.contains('open')) {
+          observer.disconnect();
+          // Reopen the meeting note after a brief delay
+          setTimeout(() => { if (noteId) openMnModal(noteId); }, 100);
+          break;
+        }
+      }
+    });
+    observer.observe(modalOverlay, { attributes: true });
+  }
+
   function renderMnTasks() {
     const container = document.getElementById('mnTaskList');
     if (!container) return;
@@ -9236,10 +9261,33 @@
     const spaceList = [...realSpaces, { id: 'unassigned', name: 'Unassigned' }];
 
     container.innerHTML = window._mnTempTasks.map((t, i) => {
+      // Saved tasks render as clickable tiles
+      if (t.waveTaskId) {
+        const waveTask = tasks.find(x => x.id === t.waveTaskId);
+        const title = waveTask ? waveTask.title : (t.title || 'Untitled');
+        const spaceName = spaces.find(s => s.id === (waveTask ? waveTask.space : t.space))?.name || '';
+        const col = waveTask ? getColumnTitle(waveTask) : '';
+        const isDone = waveTask && waveTask.column === 'done';
+        const priority = waveTask ? waveTask.priority : 'medium';
+        return `<div class="mn-task-item mn-task-tile" data-idx="${i}" data-wave-id="${t.waveTaskId}" style="cursor:pointer;${isDone ? 'opacity:0.6;' : ''}">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="width:8px;height:8px;border-radius:50;background:var(--${priority});flex-shrink:0;"></div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);${isDone ? 'text-decoration:line-through;' : ''}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title.replace(/</g,'&lt;')}</div>
+            </div>
+            <div style="display:flex;gap:8px;font-size:11px;color:var(--text-muted);">
+              ${spaceName ? `<span>${spaceName}</span>` : ''}
+              ${col ? `<span>· ${col}</span>` : ''}
+              ${waveTask && waveTask.due ? `<span>· ${waveTask.due}</span>` : ''}
+            </div>
+          </div>
+          <button class="mn-task-remove" onclick="event.stopPropagation();removeMnTask(${i})">×</button>
+        </div>`;
+      }
+      // New/unsaved tasks render as editable form
       const spOpts = spaceList.map(s => `<option value="${s.id}" ${t.space === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
       const cols = getColumnsForSpace(t.space || 'unassigned');
       const colOpts = cols.map(c => `<option value="${c.id}" ${t.column === c.id ? 'selected' : ''}>${c.title}</option>`).join('');
-      const linked = t.waveTaskId ? `<span style="font-size:10px;color:var(--accent);cursor:pointer;" onclick="event.stopPropagation();const tt=tasks.find(x=>x.id==='${t.waveTaskId}');if(tt)openModal(tt);">🔗 ${t.waveTaskId}</span>` : '';
       return `<div class="mn-task-item" data-idx="${i}">
         <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
           <input class="mn-task-title-input" data-idx="${i}" data-field="title" value="${(t.title || '').replace(/"/g, '&quot;')}" placeholder="Task title">
@@ -9247,14 +9295,23 @@
             <select data-idx="${i}" data-field="space" onchange="updateMnTaskSpace(${i}, this.value)">${spOpts}</select>
             <select data-idx="${i}" data-field="column">${colOpts}</select>
             <input type="date" data-idx="${i}" data-field="due" value="${t.due || ''}" style="max-width:140px;">
-            <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);cursor:pointer;"><input type="checkbox" data-idx="${i}" data-field="myDay" ${t.myDay ? 'checked' : ''}> My Day</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);cursor:pointer;"><input type="checkbox" data-idx="${i}" data-field="myDay" ${t.myDay ? 'checked' : ''}> Star</label>
           </div>
           <textarea data-idx="${i}" data-field="notes" placeholder="Description / notes..." style="min-height:40px;font-size:12px;">${(t.notes || '').replace(/</g, '&lt;')}</textarea>
-          ${linked}
         </div>
         <button class="mn-task-remove" onclick="removeMnTask(${i})">×</button>
       </div>`;
     }).join('');
+
+    // Wire click handlers on saved task tiles
+    container.querySelectorAll('.mn-task-tile[data-wave-id]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.mn-task-remove')) return;
+        const waveId = el.dataset.waveId;
+        const waveTask = tasks.find(t => t.id === waveId);
+        if (waveTask) openTaskFromMeetingNote(waveTask);
+      });
+    });
   }
 
   function updateMnTaskSpace(idx, spaceId) {
