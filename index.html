@@ -1931,9 +1931,14 @@
     .wcal-block.dragging { opacity: 0.6; cursor: grabbing; z-index: 10; }
     .wcal-block-title { white-space: normal; overflow: hidden; line-height: 1.3; word-break: break-word; flex: 1; }
     .wcal-block-time { font-size: 9px; opacity: 0.7; }
-    .wcal-block-remove { position: absolute; top: 2px; right: 4px; background: none; border: none; font-size: 10px; cursor: pointer; opacity: 0; color: inherit; padding: 0 2px; }
-    .wcal-block:hover .wcal-block-remove { opacity: 0.6; }
-    .wcal-block-remove:hover { opacity: 1 !important; }
+    .wcal-block-remove, .wcal-block-export { position: absolute; top: 2px; background: none; border: none; font-size: 10px; cursor: pointer; opacity: 0; color: inherit; padding: 0 2px; }
+    .wcal-block-remove { right: 4px; }
+    .wcal-block-export { right: 18px; }
+    .wcal-block:hover .wcal-block-remove, .wcal-block:hover .wcal-block-export { opacity: 0.6; }
+    .wcal-block-remove:hover, .wcal-block-export:hover { opacity: 1 !important; }
+    .wcal-day-export { font-size: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 1px 3px; opacity: 0; transition: opacity 0.15s; }
+    .wcal-header-day:hover .wcal-day-export { opacity: 0.7; }
+    .wcal-day-export:hover { opacity: 1 !important; color: var(--accent); }
     .wcal-block-resize-top { position: absolute; top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
     .wcal-block-resize-top::after { content: ''; display: block; width: 20px; height: 2px; background: rgba(0,0,0,0.2); border-radius: 1px; margin: 1px auto 0; }
     .wcal-block-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
@@ -2663,6 +2668,7 @@
         <button id="weekPanelPrev">←</button>
         <button id="weekPanelToday">Today</button>
         <button id="weekPanelNext">→</button>
+        <button id="weekPanelExport" title="Export week to iCal" style="margin-left:4px;">↓ iCal</button>
       </div>
       <button class="week-panel-close" id="weekPanelClose">✕</button>
     </div>
@@ -6620,6 +6626,47 @@
     low: { bg: '#D4DDD4', text: '#3A5A3A' }
   };
 
+  // === iCal Export ===
+  function icsDatetime(dateStr, hour) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const h = Math.floor(hour);
+    const m = Math.round((hour - h) * 60);
+    d.setHours(h, m, 0, 0);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  }
+
+  function generateICS(blocks) {
+    let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Wave//Dashboard//EN\r\nCALSCALE:GREGORIAN\r\n';
+    blocks.forEach(block => {
+      const task = block.taskId ? tasks.find(t => t.id === block.taskId) : null;
+      const title = task ? (task.title || 'Task') : (block.title || 'Event');
+      const spaceName = spaces.find(s => s.id === (task ? task.space : block.space))?.name || '';
+      const dtStart = icsDatetime(block.date, block.startHour);
+      const dtEnd = icsDatetime(block.date, block.startHour + block.duration);
+      ics += 'BEGIN:VEVENT\r\n';
+      ics += `DTSTART:${dtStart}\r\n`;
+      ics += `DTEND:${dtEnd}\r\n`;
+      ics += `SUMMARY:${title.replace(/[,;\\]/g, c => '\\' + c)}\r\n`;
+      if (spaceName) ics += `DESCRIPTION:${spaceName}\r\n`;
+      ics += `UID:${block.id}@wave-dashboard\r\n`;
+      ics += 'END:VEVENT\r\n';
+    });
+    ics += 'END:VCALENDAR\r\n';
+    return ics;
+  }
+
+  function downloadICS(filename, blocks) {
+    const ics = generateICS(blocks);
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast(`Downloaded ${filename}`);
+  }
+
   function renderWeekCalendar(container, weekStart, compact) {
     const numDays = compact ? 5 : 7;
     const todayString = dateStr(new Date());
@@ -6638,7 +6685,7 @@
     days.forEach(day => {
       const dayName = day.date.toLocaleDateString('en-GB', { weekday: 'short' });
       const dayNum = day.date.getDate();
-      html += `<div class="wcal-header-day${day.isToday ? ' today' : ''}"><div class="wcal-header-day-name">${dayName}</div><div class="wcal-header-day-num">${dayNum}</div></div>`;
+      html += `<div class="wcal-header-day${day.isToday ? ' today' : ''}" data-date="${day.str}"><div class="wcal-header-day-name">${dayName}</div><div class="wcal-header-day-num">${dayNum}</div><button class="wcal-day-export" data-date="${day.str}" title="Export day to iCal">↓</button></div>`;
     });
     html += '</div>';
 
@@ -6705,6 +6752,7 @@
         html += `<div class="wcal-block-resize-top"></div>`;
         html += `<div class="wcal-block-title">${displayTitle}</div>`;
         if (height >= 30) html += `<div class="wcal-block-time">${timeLabel}</div>`;
+        html += `<button class="wcal-block-export" title="Export to iCal">↓</button>`;
         html += `<button class="wcal-block-remove" title="Remove from calendar">✕</button>`;
         html += `<div class="wcal-block-resize"></div>`;
         html += `</div>`;
@@ -6720,7 +6768,7 @@
     // Click block → open task modal or event modal
     container.querySelectorAll('.wcal-block').forEach(el => {
       el.addEventListener('click', (e) => {
-        if (e.target.closest('.wcal-block-remove') || e.target.closest('.wcal-block-resize') || e.target.closest('.wcal-block-resize-top')) return;
+        if (e.target.closest('.wcal-block-remove') || e.target.closest('.wcal-block-export') || e.target.closest('.wcal-block-resize') || e.target.closest('.wcal-block-resize-top')) return;
         const wpId = el.dataset.wpId;
         const block = weekPlan.find(b => b.id === wpId);
         if (!block) return;
@@ -6744,6 +6792,27 @@
           deleteCalendarBlock(wpId);
           refreshAllCalendars();
         });
+      });
+    });
+
+    // Export single block to iCal
+    container.querySelectorAll('.wcal-block-export').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wpId = btn.closest('.wcal-block').dataset.wpId;
+        const block = weekPlan.find(b => b.id === wpId);
+        if (block) downloadICS('wave-event.ics', [block]);
+      });
+    });
+
+    // Export day to iCal
+    container.querySelectorAll('.wcal-day-export').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dayDate = btn.dataset.date;
+        const dayBlocks = weekPlan.filter(b => b.date === dayDate);
+        if (dayBlocks.length === 0) { showToast('No events on this day'); return; }
+        downloadICS(`wave-${dayDate}.ics`, dayBlocks);
       });
     });
 
@@ -7001,6 +7070,12 @@
     document.getElementById('weekPanelToday').addEventListener('click', () => {
       _weekPanelStartDate = getMonday(new Date());
       renderPanel();
+    });
+    document.getElementById('weekPanelExport').addEventListener('click', () => {
+      const sun = new Date(_weekPanelStartDate); sun.setDate(sun.getDate() + 6);
+      const weekBlocks = weekPlan.filter(b => b.date >= dateStr(_weekPanelStartDate) && b.date <= dateStr(sun));
+      if (weekBlocks.length === 0) { showToast('No events this week'); return; }
+      downloadICS(`wave-week-${dateStr(_weekPanelStartDate)}.ics`, weekBlocks);
     });
 
     // Resizable panel
@@ -7303,6 +7378,7 @@
           <button id="mdWcalPrev">←</button>
           <button id="mdWcalToday">Today</button>
           <button id="mdWcalNext">→</button>
+          <button id="mdWcalExport" title="Export week to iCal" style="margin-left:4px;">↓ iCal</button>
         </div>
       </div>
       <div class="myday-wcal-wrap" id="mdWcalContainer"></div>
@@ -7382,6 +7458,13 @@
     if (mdPrev) mdPrev.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() - 7); renderMyDay(); });
     if (mdNext) mdNext.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + 7); renderMyDay(); });
     if (mdToday) mdToday.addEventListener('click', () => { _mydayWeekStartDate = getMonday(new Date()); renderMyDay(); });
+    const mdExport = document.getElementById('mdWcalExport');
+    if (mdExport) mdExport.addEventListener('click', () => {
+      const fri = new Date(_mydayWeekStartDate); fri.setDate(fri.getDate() + 4);
+      const weekBlocks = weekPlan.filter(b => b.date >= dateStr(_mydayWeekStartDate) && b.date <= dateStr(fri));
+      if (weekBlocks.length === 0) { showToast('No events this week'); return; }
+      downloadICS(`wave-week-${dateStr(_mydayWeekStartDate)}.ics`, weekBlocks);
+    });
 
     mydayView.querySelectorAll('.myday-task-check').forEach(el => {
       el.addEventListener('click', (e) => {
