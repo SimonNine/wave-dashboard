@@ -3668,6 +3668,8 @@
   }
 
   function saveState() {
+    // Auto-unstar tasks when marked done
+    tasks.forEach(t => { if (t.column === 'done' && t.myDay) setMyDay(t, false); });
     localStorage.setItem('wave_tasks', JSON.stringify(tasks));
     localStorage.setItem('wave_space_columns', JSON.stringify(spaceColumns));
     localStorage.setItem('wave_spaces', JSON.stringify(spaces));
