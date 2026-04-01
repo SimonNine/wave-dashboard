@@ -1860,6 +1860,66 @@
       .cmd-palette { width: 95vw; }
       .timer-widget { bottom: 12px; right: 12px; min-width: 160px; }
     }
+    /* ===== WEEKLY CALENDAR PLANNER ===== */
+    .week-panel-trigger { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 9000; background: var(--accent); color: white; border: none; padding: 12px 6px; border-radius: 8px 0 0 8px; cursor: pointer; writing-mode: vertical-rl; text-orientation: mixed; font-size: 11px; font-weight: 700; letter-spacing: 1px; box-shadow: -2px 0 12px rgba(0,0,0,0.1); transition: all 0.2s; }
+    .week-panel-trigger:hover { padding-right: 10px; background: var(--text); }
+    .week-panel-trigger.hidden { display: none; }
+    .week-panel-overlay { position: fixed; inset: 0; z-index: 9001; pointer-events: none; }
+    .week-panel-overlay.open { pointer-events: auto; }
+    .week-panel { position: fixed; right: 0; top: 0; height: 100vh; z-index: 9002; background: var(--bg); border-left: 1px solid var(--border); box-shadow: -4px 0 24px rgba(0,0,0,0.12); transform: translateX(100%); transition: transform 0.3s ease; display: flex; flex-direction: column; }
+    .week-panel-overlay.open .week-panel { transform: translateX(0); }
+    .week-panel-resize { position: absolute; left: -4px; top: 0; width: 8px; height: 100%; cursor: col-resize; z-index: 9003; }
+    .week-panel-resize:hover, .week-panel-resize:active { background: var(--accent); opacity: 0.3; }
+    .week-panel-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .week-panel-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+    .week-panel-nav { display: flex; gap: 4px; }
+    .week-panel-nav button { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 4px 10px; cursor: pointer; color: var(--text); font-size: 13px; }
+    .week-panel-nav button:hover { border-color: var(--accent); color: var(--accent); }
+    .week-panel-close { background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; padding: 4px 8px; }
+    .week-panel-close:hover { color: var(--text); }
+    .week-panel-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+    /* Week calendar grid */
+    .wcal { display: flex; flex-direction: column; min-height: 100%; user-select: none; }
+    .wcal-header { display: flex; position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .wcal-header-gutter { width: 48px; flex-shrink: 0; }
+    .wcal-header-day { flex: 1; text-align: center; padding: 8px 2px; font-size: 11px; font-weight: 600; color: var(--text-secondary); border-left: 1px solid var(--border); }
+    .wcal-header-day.today { color: var(--accent); background: var(--accent-light); }
+    .wcal-header-day-name { text-transform: uppercase; letter-spacing: 0.5px; }
+    .wcal-header-day-num { font-size: 18px; font-weight: 700; color: var(--text); margin-top: 2px; }
+    .wcal-header-day.today .wcal-header-day-num { color: var(--accent); }
+    .wcal-body { display: flex; flex: 1; position: relative; }
+    .wcal-gutter { width: 48px; flex-shrink: 0; }
+    .wcal-gutter-label { height: 40px; font-size: 10px; color: var(--text-muted); text-align: right; padding-right: 8px; line-height: 1; transform: translateY(-5px); }
+    .wcal-days { display: flex; flex: 1; }
+    .wcal-day-col { flex: 1; position: relative; border-left: 1px solid var(--border); min-height: calc(16 * 40px); }
+    .wcal-day-col.today { background: color-mix(in srgb, var(--accent) 3%, transparent); }
+    .wcal-slot { height: 20px; border-bottom: 1px dotted color-mix(in srgb, var(--border) 50%, transparent); }
+    .wcal-slot.hour-start { border-bottom: 1px solid var(--border); }
+    .wcal-slot.drag-over-slot { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+    /* Time blocks */
+    .wcal-block { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 500; overflow: hidden; cursor: grab; z-index: 2; border: 1px solid rgba(0,0,0,0.08); transition: box-shadow 0.15s; display: flex; flex-direction: column; }
+    .wcal-block:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 3; }
+    .wcal-block.dragging { opacity: 0.6; cursor: grabbing; z-index: 10; }
+    .wcal-block-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+    .wcal-block-time { font-size: 9px; opacity: 0.7; }
+    .wcal-block-remove { position: absolute; top: 2px; right: 4px; background: none; border: none; font-size: 10px; cursor: pointer; opacity: 0; color: inherit; padding: 0 2px; }
+    .wcal-block:hover .wcal-block-remove { opacity: 0.6; }
+    .wcal-block-remove:hover { opacity: 1 !important; }
+    .wcal-block-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+    .wcal-block-resize::after { content: ''; display: block; width: 20px; height: 2px; background: rgba(0,0,0,0.2); border-radius: 1px; margin: 2px auto 0; }
+    .wcal-block.done-block { opacity: 0.5; }
+    .wcal-block.done-block .wcal-block-title { text-decoration: line-through; }
+
+    /* My Day embed compact calendar */
+    .myday-wcal-wrap { border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; max-height: 500px; overflow-y: auto; }
+    .myday-wcal-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .myday-wcal-title { font-size: 13px; font-weight: 700; color: var(--text); }
+    .myday-wcal-nav { display: flex; gap: 4px; }
+    .myday-wcal-nav button { background: none; border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 2px 8px; cursor: pointer; color: var(--text-muted); font-size: 12px; }
+    .myday-wcal-nav button:hover { border-color: var(--accent); color: var(--accent); }
+
     @media print { .no-print { display: none !important; } }
   </style>
 </head>
@@ -2059,7 +2119,7 @@
       <span class="batch-bar-count" id="batchCount">0 selected</span>
       <button class="batch-bar-btn" id="batchMoveDone">Move to Done</button>
       <button class="batch-bar-btn" id="batchSetHigh">Set High Priority</button>
-      <button class="batch-bar-btn" id="batchMyDay">Add to My Day</button>
+      <button class="batch-bar-btn" id="batchMyDay">★ Star</button>
       <button class="batch-bar-btn" id="batchDelete">Delete</button>
       <button class="batch-bar-close" id="batchClose">✕</button>
     </div>
@@ -2239,7 +2299,7 @@
           </div>
           <input type="time" class="field-input" id="modalTime" style="display:none;">
           <div class="myday-toggle-wrap">
-            <button class="myday-toggle-btn" id="modalMyDayToggle">☀ My Day</button>
+            <button class="myday-toggle-btn" id="modalMyDayToggle">★ Star</button>
           </div>
         </div>
 
@@ -2525,6 +2585,24 @@
   <div class="zen-skip-info" id="zenSkipInfo" style="margin-top:12px;font-size:11px;color:var(--text-muted);">Use ← → arrow keys to navigate</div>
 </div>
 
+<!-- ===== MY WEEK FLOATING PANEL ===== -->
+<button class="week-panel-trigger" id="weekPanelTrigger">MY WEEK</button>
+<div class="week-panel-overlay" id="weekPanelOverlay">
+  <div class="week-panel" id="weekPanel">
+    <div class="week-panel-resize" id="weekPanelResize"></div>
+    <div class="week-panel-header">
+      <div class="week-panel-title" id="weekPanelTitle"></div>
+      <div class="week-panel-nav">
+        <button id="weekPanelPrev">←</button>
+        <button id="weekPanelToday">Today</button>
+        <button id="weekPanelNext">→</button>
+      </div>
+      <button class="week-panel-close" id="weekPanelClose">✕</button>
+    </div>
+    <div class="week-panel-body" id="weekPanelBody"></div>
+  </div>
+</div>
+
 <!-- Unsaved Changes Dialog -->
 <div class="unsaved-overlay" id="unsavedOverlay">
   <div class="unsaved-dialog">
@@ -2779,6 +2857,9 @@
   let listSortColumn = null;
   let listSortAsc = true;
   let columnSortState = {}; // { columnId: 'asc' | 'desc' | null }
+  let weekPlan = []; // [{ id, taskId, date, startHour, duration }]
+  let weekPanelOpen = false;
+  let weekPanelWidth = 40; // percentage of viewport
   let listColumnFilters = {};
   let isDarkMode = false;
   let currentTheme = 'default';
@@ -3436,6 +3517,8 @@
     customClients = savedCustomClients ? JSON.parse(savedCustomClients) : [];
     const savedContent = localStorage.getItem('wave_content');
     contentItems = savedContent ? JSON.parse(savedContent) : [];
+    const savedWeekPlan = localStorage.getItem('wave_week_plan');
+    weekPlan = savedWeekPlan ? JSON.parse(savedWeekPlan) : [];
     const savedRate = localStorage.getItem('wave_usdToGbpRate');
     if (savedRate) usdToGbpRate = parseFloat(savedRate);
     const savedGbpOverrides = localStorage.getItem('wave_gbpOverrides');
@@ -3515,6 +3598,7 @@
     localStorage.setItem('wave_usdToGbpRate', usdToGbpRate.toString());
     localStorage.setItem('wave_gbpOverrides', JSON.stringify(gbpOverrides));
     localStorage.setItem('wave_smart_feed', JSON.stringify(smartFeed));
+    localStorage.setItem('wave_week_plan', JSON.stringify(weekPlan));
     const settings = {
       currentView, currentSpace,
       activePriorityFilters: Array.from(activePriorityFilters),
@@ -3523,6 +3607,7 @@
     };
     localStorage.setItem('wave_settings', JSON.stringify(settings));
     schedulePush();
+    if (typeof window._refreshWeekPanel === 'function') window._refreshWeekPanel();
   }
 
   // ===== MY DAY: date stamping + nightly sweep =====
@@ -3778,6 +3863,7 @@
     setInterval(updateLiveTime, 1000);
     renderSpaces();
     setupEventListeners();
+    initWeekPanel();
     applyTheme();
     if (isCompact) document.body.classList.add('compact');
     if (isZenBoard) document.body.classList.add('zen-board');
@@ -6393,6 +6479,313 @@
     });
   }
 
+  // ===== WEEKLY CALENDAR PLANNER =====
+  let _weekPanelStartDate = null; // Monday of displayed week
+  let _mydayWeekStartDate = null; // For My Day embed
+
+  function getMonday(d) {
+    const dt = new Date(d);
+    const day = dt.getDay();
+    const diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+    dt.setDate(diff); dt.setHours(0,0,0,0);
+    return dt;
+  }
+
+  function formatWeekLabel(monday) {
+    const sun = new Date(monday); sun.setDate(sun.getDate() + 6);
+    const mStr = monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const sStr = sun.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${mStr} – ${sStr}`;
+  }
+
+  function dateStr(d) { return d.toISOString().split('T')[0]; }
+
+  function hourToLabel(h) {
+    const hr = Math.floor(h);
+    const min = Math.round((h - hr) * 60);
+    const ampm = hr >= 12 ? 'pm' : 'am';
+    const hr12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+    return min === 0 ? `${hr12}${ampm}` : `${hr12}:${String(min).padStart(2,'0')}${ampm}`;
+  }
+
+  const WCAL_START = 6; // 6am
+  const WCAL_END = 22; // 10pm
+  const WCAL_HOURS = WCAL_END - WCAL_START;
+  const WCAL_PX_PER_HOUR = 40;
+  const WCAL_SNAP = 0.25; // 15 min
+
+  function snapHour(h) { return Math.round(h / WCAL_SNAP) * WCAL_SNAP; }
+
+  const PRIORITY_COLORS = {
+    urgent: { bg: '#F4D0CC', text: '#8B3A2F' },
+    high: { bg: '#F5DDD3', text: '#8B5A3A' },
+    medium: { bg: '#E8E0D4', text: '#5A5040' },
+    low: { bg: '#D4DDD4', text: '#3A5A3A' }
+  };
+
+  function renderWeekCalendar(container, weekStart, compact) {
+    const numDays = compact ? 5 : 7;
+    const todayString = dateStr(new Date());
+
+    // Build day dates
+    const days = [];
+    for (let i = 0; i < numDays; i++) {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      days.push({ date: d, str: dateStr(d), isToday: dateStr(d) === todayString });
+    }
+
+    let html = '<div class="wcal">';
+    // Header
+    html += '<div class="wcal-header"><div class="wcal-header-gutter"></div>';
+    days.forEach(day => {
+      const dayName = day.date.toLocaleDateString('en-GB', { weekday: 'short' });
+      const dayNum = day.date.getDate();
+      html += `<div class="wcal-header-day${day.isToday ? ' today' : ''}"><div class="wcal-header-day-name">${dayName}</div><div class="wcal-header-day-num">${dayNum}</div></div>`;
+    });
+    html += '</div>';
+
+    // Body: gutter + day columns
+    html += '<div class="wcal-body"><div class="wcal-gutter">';
+    for (let h = WCAL_START; h < WCAL_END; h++) {
+      html += `<div class="wcal-gutter-label">${hourToLabel(h)}</div>`;
+    }
+    html += '</div><div class="wcal-days">';
+
+    days.forEach(day => {
+      html += `<div class="wcal-day-col${day.isToday ? ' today' : ''}" data-date="${day.str}">`;
+      // 30-min slots for drop targets
+      for (let h = WCAL_START; h < WCAL_END; h += 0.5) {
+        const isHourStart = h === Math.floor(h);
+        html += `<div class="wcal-slot${isHourStart ? ' hour-start' : ''}" data-hour="${h}"></div>`;
+      }
+      // Render time blocks for this day
+      const dayBlocks = weekPlan.filter(b => b.date === day.str);
+      dayBlocks.forEach(block => {
+        const task = tasks.find(t => t.id === block.taskId);
+        if (!task) return;
+        const top = (block.startHour - WCAL_START) * WCAL_PX_PER_HOUR;
+        const height = Math.max(block.duration * WCAL_PX_PER_HOUR, 15);
+        const isDone = task.column === 'done';
+        const prio = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium;
+        const bg = task.customColor || prio.bg;
+        const color = task.customColor ? '#fff' : prio.text;
+        const timeLabel = `${hourToLabel(block.startHour)}–${hourToLabel(block.startHour + block.duration)}`;
+        html += `<div class="wcal-block${isDone ? ' done-block' : ''}" data-wp-id="${block.id}" data-task-id="${block.taskId}" style="top:${top}px;height:${height}px;background:${bg};color:${color};" draggable="true">`;
+        html += `<div class="wcal-block-title">${(task.title || '').replace(/</g,'&lt;')}</div>`;
+        if (height >= 30) html += `<div class="wcal-block-time">${timeLabel}</div>`;
+        html += `<button class="wcal-block-remove" title="Remove from calendar">✕</button>`;
+        html += `<div class="wcal-block-resize"></div>`;
+        html += `</div>`;
+      });
+      html += '</div>';
+    });
+    html += '</div></div></div>';
+
+    container.innerHTML = html;
+
+    // === Interactions ===
+
+    // Click block → open task modal
+    container.querySelectorAll('.wcal-block').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.wcal-block-remove') || e.target.closest('.wcal-block-resize')) return;
+        const task = tasks.find(t => t.id === el.dataset.taskId);
+        if (task) openModal(task);
+      });
+    });
+
+    // Remove block
+    container.querySelectorAll('.wcal-block-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wpId = btn.closest('.wcal-block').dataset.wpId;
+        weekPlan = weekPlan.filter(b => b.id !== wpId);
+        saveState();
+        renderWeekCalendar(container, weekStart, compact);
+      });
+    });
+
+    // Drag block (move between times/days)
+    container.querySelectorAll('.wcal-block').forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/wp-id', el.dataset.wpId);
+        e.dataTransfer.setData('text/task-id', el.dataset.taskId);
+        e.dataTransfer.effectAllowed = 'move';
+        el.classList.add('dragging');
+      });
+      el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    });
+
+    // Drop targets on day columns
+    container.querySelectorAll('.wcal-day-col').forEach(col => {
+      col.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('text/task-id') || e.dataTransfer.types.includes('text/wp-id')) {
+          e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+          // Highlight nearest slot
+          col.querySelectorAll('.drag-over-slot').forEach(s => s.classList.remove('drag-over-slot'));
+          const colRect = col.getBoundingClientRect();
+          const relY = e.clientY - colRect.top + col.scrollTop;
+          const hour = snapHour(WCAL_START + relY / WCAL_PX_PER_HOUR);
+          const slot = col.querySelector(`.wcal-slot[data-hour="${Math.floor(hour * 2) / 2}"]`);
+          if (slot) slot.classList.add('drag-over-slot');
+        }
+      });
+      col.addEventListener('dragleave', (e) => {
+        if (!col.contains(e.relatedTarget)) {
+          col.querySelectorAll('.drag-over-slot').forEach(s => s.classList.remove('drag-over-slot'));
+        }
+      });
+      col.addEventListener('drop', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        col.querySelectorAll('.drag-over-slot').forEach(s => s.classList.remove('drag-over-slot'));
+        const colDate = col.dataset.date;
+        const colRect = col.getBoundingClientRect();
+        const relY = e.clientY - colRect.top + col.scrollTop;
+        const dropHour = snapHour(Math.max(WCAL_START, Math.min(WCAL_END - 0.5, WCAL_START + relY / WCAL_PX_PER_HOUR)));
+
+        const wpId = e.dataTransfer.getData('text/wp-id');
+        if (wpId) {
+          // Moving existing block
+          const block = weekPlan.find(b => b.id === wpId);
+          if (block) {
+            block.date = colDate;
+            block.startHour = dropHour;
+            // Clamp duration to not exceed end of day
+            if (block.startHour + block.duration > WCAL_END) block.duration = WCAL_END - block.startHour;
+            saveState();
+            renderWeekCalendar(container, weekStart, compact);
+          }
+          return;
+        }
+
+        const taskId = e.dataTransfer.getData('text/task-id');
+        if (taskId) {
+          // New block from board drag
+          const task = tasks.find(t => t.id === taskId);
+          if (task) {
+            weekPlan.push({
+              id: 'wp-' + Date.now(),
+              taskId: taskId,
+              date: colDate,
+              startHour: dropHour,
+              duration: 1
+            });
+            saveState();
+            renderWeekCalendar(container, weekStart, compact);
+          }
+        }
+      });
+    });
+
+    // Resize blocks (drag bottom edge)
+    container.querySelectorAll('.wcal-block-resize').forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const blockEl = handle.closest('.wcal-block');
+        const wpId = blockEl.dataset.wpId;
+        const block = weekPlan.find(b => b.id === wpId);
+        if (!block) return;
+
+        const col = blockEl.closest('.wcal-day-col');
+        const colRect = col.getBoundingClientRect();
+        const startY = e.clientY;
+        const startDuration = block.duration;
+
+        function onMove(ev) {
+          const deltaY = ev.clientY - startY;
+          const deltaHours = deltaY / WCAL_PX_PER_HOUR;
+          let newDuration = snapHour(Math.max(WCAL_SNAP, startDuration + deltaHours));
+          if (block.startHour + newDuration > WCAL_END) newDuration = WCAL_END - block.startHour;
+          block.duration = newDuration;
+          blockEl.style.height = (newDuration * WCAL_PX_PER_HOUR) + 'px';
+          const timeLabel = blockEl.querySelector('.wcal-block-time');
+          if (timeLabel) timeLabel.textContent = `${hourToLabel(block.startHour)}–${hourToLabel(block.startHour + block.duration)}`;
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          saveState();
+          renderWeekCalendar(container, weekStart, compact);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
+  }
+
+  // === Floating Week Panel ===
+  function initWeekPanel() {
+    if (!_weekPanelStartDate) _weekPanelStartDate = getMonday(new Date());
+    const panel = document.getElementById('weekPanel');
+    const overlay = document.getElementById('weekPanelOverlay');
+    const trigger = document.getElementById('weekPanelTrigger');
+    const body = document.getElementById('weekPanelBody');
+    const titleEl = document.getElementById('weekPanelTitle');
+
+    panel.style.width = weekPanelWidth + 'vw';
+
+    function renderPanel() {
+      titleEl.textContent = formatWeekLabel(_weekPanelStartDate);
+      renderWeekCalendar(body, _weekPanelStartDate, false);
+    }
+
+    function openPanel() {
+      weekPanelOpen = true;
+      overlay.classList.add('open');
+      trigger.classList.add('hidden');
+      renderPanel();
+    }
+    function closePanel() {
+      weekPanelOpen = false;
+      overlay.classList.remove('open');
+      trigger.classList.remove('hidden');
+    }
+
+    trigger.addEventListener('click', openPanel);
+    document.getElementById('weekPanelClose').addEventListener('click', closePanel);
+    document.getElementById('weekPanelPrev').addEventListener('click', () => {
+      _weekPanelStartDate.setDate(_weekPanelStartDate.getDate() - 7);
+      renderPanel();
+    });
+    document.getElementById('weekPanelNext').addEventListener('click', () => {
+      _weekPanelStartDate.setDate(_weekPanelStartDate.getDate() + 7);
+      renderPanel();
+    });
+    document.getElementById('weekPanelToday').addEventListener('click', () => {
+      _weekPanelStartDate = getMonday(new Date());
+      renderPanel();
+    });
+
+    // Close on clicking outside the panel
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closePanel();
+    });
+
+    // Resizable panel
+    const resizeHandle = document.getElementById('weekPanelResize');
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = panel.offsetWidth;
+      function onMove(ev) {
+        const delta = startX - ev.clientX;
+        const newWidth = Math.max(300, Math.min(window.innerWidth * 0.7, startWidth + delta));
+        weekPanelWidth = (newWidth / window.innerWidth) * 100;
+        panel.style.width = newWidth + 'px';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Re-render when weekPlan changes externally
+    window._refreshWeekPanel = () => { if (weekPanelOpen) renderPanel(); };
+  }
+
   // ===== MY DAY VIEW =====
   function renderMyDay() {
    try {
@@ -6404,7 +6797,7 @@
 
     const myDayTasks = tasks.filter(t => t.myDay);
     const todayStr = now.toISOString().split('T')[0];
-    const todayEvents = tasks.filter(t => t.due === todayStr && t.source === 'Calendar');
+    // todayEvents removed — replaced by embedded weekly calendar
     const completedCount = myDayTasks.filter(t => t.column === 'done').length;
 
     let html = `<div class="myday-greeting">
@@ -6414,9 +6807,9 @@
 
     html += '<div class="myday-sections">';
 
-    html += '<div class="myday-section"><div class="myday-section-header">My Day Tasks <span class="myday-section-count">' + myDayTasks.length + '</span></div>';
+    html += '<div class="myday-section"><div class="myday-section-header">Starred Tasks <span class="myday-section-count">' + myDayTasks.length + '</span></div>';
     if (myDayTasks.length === 0) {
-      html += '<div class="myday-empty"><div class="myday-empty-icon">☀</div>Plan your day by starring tasks from the board, or use ⌘K to search and add.</div>';
+      html += '<div class="myday-empty"><div class="myday-empty-icon">★</div>Star tasks from the board or use ⌘K to search and add.</div>';
     } else {
       // Group tasks by space
       const spaceGroups = {};
@@ -6439,38 +6832,28 @@
             <td style="padding:8px 8px;font-size:13px;color:var(--text);${isDone ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${getTaskDisplayTitle(task)}${carryoverBadge}</td>
             <td style="width:70px;padding:8px 4px;"><span class="priority-badge priority-${task.priority}" style="font-size:10px;">${task.priority}</span></td>
             <td style="width:90px;padding:8px 4px;font-size:11px;color:var(--text-muted);">${task.due || ''}</td>
-            <td style="width:28px;padding:8px 0;text-align:center;"><button class="myday-task-remove" data-task-id="${task.id}" title="Remove from My Day" style="font-size:12px;">✕</button></td>
+            <td style="width:28px;padding:8px 0;text-align:center;"><button class="myday-task-remove" data-task-id="${task.id}" title="Unstar task" style="font-size:12px;">✕</button></td>
           </tr>`;
         });
         html += '</table></div>';
       });
     }
-    html += '<button class="myday-add-btn" id="mydayAddBtn">+ Add tasks to My Day</button></div>';
+    html += '<button class="myday-add-btn" id="mydayAddBtn">+ Star more tasks</button></div>';
 
-    html += '<div class="myday-section"><div class="myday-section-header">Today\'s Schedule</div>';
-    if (todayEvents.length === 0) {
-      html += '<div class="myday-empty"><div class="myday-empty-icon">📅</div>No events scheduled for today.</div>';
-    } else {
-      todayEvents.forEach(event => {
-        html += `<div class="myday-event">
-          <div class="myday-event-time">${event.time || 'All day'}</div>
-          <div class="myday-event-title">${event.title}</div>
-        </div>`;
-      });
-    }
-
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const upcoming = tasks.filter(t => t.due && t.due > todayStr && t.due <= weekFromNow && t.column !== 'done').sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5);
-    if (upcoming.length > 0) {
-      html += '<div class="myday-section-header" style="margin-top: 20px;">Coming Up This Week</div>';
-      upcoming.forEach(task => {
-        html += `<div class="myday-event" style="cursor:pointer;" data-task-id="${task.id}">
-          <div class="myday-event-time">${task.due.slice(5)}</div>
-          <div class="myday-event-title">${task.title}</div>
-        </div>`;
-      });
-    }
-    html += '</div>';
+    // Embedded compact weekly calendar (Mon-Fri)
+    if (!_mydayWeekStartDate) _mydayWeekStartDate = getMonday(new Date());
+    const mdWeekLabel = formatWeekLabel(_mydayWeekStartDate);
+    html += `<div class="myday-section" style="grid-column:1/-1;">
+      <div class="myday-wcal-header">
+        <div class="myday-wcal-title">My Week — ${mdWeekLabel}</div>
+        <div class="myday-wcal-nav">
+          <button id="mdWcalPrev">←</button>
+          <button id="mdWcalToday">Today</button>
+          <button id="mdWcalNext">→</button>
+        </div>
+      </div>
+      <div class="myday-wcal-wrap" id="mdWcalContainer"></div>
+    </div>`;
 
     // Smart Feed section
     const feedDedupCount = smartFeed.filter(f => {
@@ -6534,6 +6917,18 @@
     html += '</div>';
 
     mydayView.innerHTML = html;
+
+    // Render compact weekly calendar embed
+    const mdWcalContainer = document.getElementById('mdWcalContainer');
+    if (mdWcalContainer) {
+      renderWeekCalendar(mdWcalContainer, _mydayWeekStartDate, true);
+    }
+    const mdPrev = document.getElementById('mdWcalPrev');
+    const mdNext = document.getElementById('mdWcalNext');
+    const mdToday = document.getElementById('mdWcalToday');
+    if (mdPrev) mdPrev.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() - 7); renderMyDay(); });
+    if (mdNext) mdNext.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + 7); renderMyDay(); });
+    if (mdToday) mdToday.addEventListener('click', () => { _mydayWeekStartDate = getMonday(new Date()); renderMyDay(); });
 
     mydayView.querySelectorAll('.myday-task-check').forEach(el => {
       el.addEventListener('click', (e) => {
@@ -6868,35 +7263,6 @@
     addBtn.addEventListener('click', addColumn);
     columnsRow.appendChild(addBtn);
 
-    // My Day drop zone at the bottom
-    const myDayTasks = tasks.filter(t => t.myDay && (currentSpace === 'all' || t.space === currentSpace));
-    const zone = document.createElement('div');
-    zone.className = 'board-myday-zone';
-    zone.innerHTML = '<span class="myday-zone-label">☀ My Day</span>' +
-      (myDayTasks.length > 0
-        ? myDayTasks.map(t => `<span class="myday-zone-task"><span class="myday-zone-star">★</span> ${t.title}</span>`).join('')
-        : '<span style="font-style:italic;">Drag tasks here to add to My Day</span>');
-
-    zone.addEventListener('dragover', (e) => {
-      if (e.dataTransfer.types.includes('text/task-id')) {
-        e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-        zone.classList.add('drag-over');
-      }
-    });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-    zone.addEventListener('drop', (e) => {
-      const taskId = e.dataTransfer.getData('text/task-id');
-      if (taskId) {
-        e.preventDefault(); e.stopPropagation();
-        zone.classList.remove('drag-over');
-        const task = tasks.find(t => t.id === taskId);
-        if (task && !task.myDay) {
-          setMyDay(task, true);
-          saveState(); renderBoard();
-        }
-      }
-    });
-    boardView.appendChild(zone);
   }
 
   function createTaskCard(task) {
@@ -6917,7 +7283,7 @@
 
     card.innerHTML = `
       <span class="batch-checkbox" data-task-id="${task.id}">${batchSelected.has(task.id) ? '✓' : ''}</span>
-      <span class="myday-star ${task.myDay ? 'active' : ''}" data-task-id="${task.id}" title="Add to My Day">★</span>
+      <span class="myday-star ${task.myDay ? 'active' : ''}" data-task-id="${task.id}" title="Star task">★</span>
       <div class="task-title" style="color: ${task.customColor ? textColor : 'var(--text)'}">${getTaskDisplayTitle(task)}</div>
       <div class="task-footer">
         <span class="priority-badge priority-${task.priority}">${task.priority}</span>
@@ -7051,7 +7417,7 @@
         </div>
         <div class="triage-card-actions">
           <button class="triage-btn accept" data-action="accept" data-task-id="${task.id}">Accept</button>
-          <button class="triage-btn" data-action="myday" data-task-id="${task.id}">☀ My Day</button>
+          <button class="triage-btn" data-action="myday" data-task-id="${task.id}">★ Star</button>
           <button class="triage-btn dismiss" data-action="dismiss" data-task-id="${task.id}">✕</button>
         </div>
       </div>`;
@@ -7298,7 +7664,7 @@
 
     const myDayBtn = document.getElementById('modalMyDayToggle');
     myDayBtn.classList.toggle('active', task.myDay);
-    myDayBtn.textContent = task.myDay ? '☀ My Day ✓' : '☀ My Day';
+    myDayBtn.textContent = task.myDay ? '★ Starred ✓' : '★ Star';
 
     const spaceSelect = document.getElementById('modalSpace');
     spaceSelect.innerHTML = '';
@@ -7458,7 +7824,7 @@
     setMyDay(editingTask, !editingTask.myDay);
     const btn = document.getElementById('modalMyDayToggle');
     btn.classList.toggle('active', editingTask.myDay);
-    btn.textContent = editingTask.myDay ? '☀ My Day ✓' : '☀ My Day';
+    btn.textContent = editingTask.myDay ? '★ Starred ✓' : '★ Star';
   }
 
   function renderSubtasksList() {
@@ -7703,7 +8069,7 @@
       if (!task) { showCommandFeedback(`No task found matching "${m[1]}".`, 'error'); return; }
       setMyDay(task, true);
       saveState(); renderCurrentView();
-      showCommandFeedback(`Added "${task.title}" to My Day.`, 'success');
+      showCommandFeedback(`Starred "${task.title}".`, 'success');
       return;
     }
 
