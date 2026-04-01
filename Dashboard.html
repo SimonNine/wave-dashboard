@@ -1923,15 +1923,17 @@
     .wcal-slot.drag-over-slot { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
     /* Time blocks */
-    .wcal-block { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 500; overflow: hidden; cursor: grab; z-index: 2; border: 1px solid rgba(0,0,0,0.08); transition: box-shadow 0.15s; display: flex; flex-direction: column; }
+    .wcal-block { position: absolute; border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 500; overflow: hidden; cursor: grab; z-index: 2; border: 1px solid rgba(0,0,0,0.08); transition: box-shadow 0.15s; display: flex; flex-direction: column; box-sizing: border-box; }
     .wcal-block:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 3; }
     .wcal-block.dragging { opacity: 0.6; cursor: grabbing; z-index: 10; }
-    .wcal-block-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+    .wcal-block-title { white-space: normal; overflow: hidden; line-height: 1.3; word-break: break-word; flex: 1; }
     .wcal-block-time { font-size: 9px; opacity: 0.7; }
     .wcal-block-remove { position: absolute; top: 2px; right: 4px; background: none; border: none; font-size: 10px; cursor: pointer; opacity: 0; color: inherit; padding: 0 2px; }
     .wcal-block:hover .wcal-block-remove { opacity: 0.6; }
     .wcal-block-remove:hover { opacity: 1 !important; }
-    .wcal-block-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+    .wcal-block-resize-top { position: absolute; top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
+    .wcal-block-resize-top::after { content: ''; display: block; width: 20px; height: 2px; background: rgba(0,0,0,0.2); border-radius: 1px; margin: 1px auto 0; }
+    .wcal-block-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
     .wcal-block-resize::after { content: ''; display: block; width: 20px; height: 2px; background: rgba(0,0,0,0.2); border-radius: 1px; margin: 2px auto 0; }
     .wcal-block.done-block { opacity: 0.5; }
     .wcal-block.done-block .wcal-block-title { text-decoration: line-through; }
@@ -6541,8 +6543,8 @@
     return min === 0 ? `${hr12}${ampm}` : `${hr12}:${String(min).padStart(2,'0')}${ampm}`;
   }
 
-  const WCAL_START = 6; // 6am
-  const WCAL_END = 22; // 10pm
+  const WCAL_START = 0; // midnight
+  const WCAL_END = 24; // midnight
   const WCAL_HOURS = WCAL_END - WCAL_START;
   const WCAL_PX_PER_HOUR = 40;
   const WCAL_SNAP = 0.25; // 15 min
@@ -6592,8 +6594,26 @@
         const isHourStart = h === Math.floor(h);
         html += `<div class="wcal-slot${isHourStart ? ' hour-start' : ''}" data-hour="${h}"></div>`;
       }
-      // Render time blocks for this day
+      // Render time blocks for this day with overlap detection
       const dayBlocks = weekPlan.filter(b => b.date === day.str);
+      // Calculate overlap groups: blocks that overlap in time get offset
+      const sorted = dayBlocks.slice().sort((a, b) => a.startHour - b.startHour || a.duration - b.duration);
+      const overlapMap = {}; // wpId → { col, totalCols }
+      const active = []; // currently overlapping blocks
+      sorted.forEach(block => {
+        // Remove blocks that have ended
+        for (let i = active.length - 1; i >= 0; i--) {
+          if (active[i].startHour + active[i].duration <= block.startHour) active.splice(i, 1);
+        }
+        active.push(block);
+        const col = active.indexOf(block);
+        // Update all active blocks with current total
+        active.forEach((b, idx) => {
+          if (!overlapMap[b.id] || active.length > overlapMap[b.id].totalCols) {
+            overlapMap[b.id] = { col: idx, totalCols: active.length };
+          }
+        });
+      });
       dayBlocks.forEach(block => {
         const task = tasks.find(t => t.id === block.taskId);
         if (!task) return;
@@ -6604,7 +6624,12 @@
         const bg = task.customColor || prio.bg;
         const color = task.customColor ? '#fff' : prio.text;
         const timeLabel = `${hourToLabel(block.startHour)}–${hourToLabel(block.startHour + block.duration)}`;
-        html += `<div class="wcal-block${isDone ? ' done-block' : ''}" data-wp-id="${block.id}" data-task-id="${block.taskId}" style="top:${top}px;height:${height}px;background:${bg};color:${color};" draggable="true">`;
+        const ov = overlapMap[block.id] || { col: 0, totalCols: 1 };
+        const widthPct = Math.floor(100 / ov.totalCols);
+        const leftPct = ov.col * widthPct;
+        const overlapStyle = ov.totalCols > 1 ? `left:${leftPct}%;width:${widthPct}%;` : 'left:2px;right:2px;';
+        html += `<div class="wcal-block${isDone ? ' done-block' : ''}" data-wp-id="${block.id}" data-task-id="${block.taskId}" style="top:${top}px;height:${height}px;background:${bg};color:${color};${overlapStyle}" draggable="true">`;
+        html += `<div class="wcal-block-resize-top"></div>`;
         html += `<div class="wcal-block-title">${(task.title || '').replace(/</g,'&lt;')}</div>`;
         if (height >= 30) html += `<div class="wcal-block-time">${timeLabel}</div>`;
         html += `<button class="wcal-block-remove" title="Remove from calendar">✕</button>`;
@@ -6622,7 +6647,7 @@
     // Click block → open task modal
     container.querySelectorAll('.wcal-block').forEach(el => {
       el.addEventListener('click', (e) => {
-        if (e.target.closest('.wcal-block-remove') || e.target.closest('.wcal-block-resize')) return;
+        if (e.target.closest('.wcal-block-remove') || e.target.closest('.wcal-block-resize') || e.target.closest('.wcal-block-resize-top')) return;
         const task = tasks.find(t => t.id === el.dataset.taskId);
         if (task) openModal(task);
       });
@@ -6720,8 +6745,6 @@
         const block = weekPlan.find(b => b.id === wpId);
         if (!block) return;
 
-        const col = blockEl.closest('.wcal-day-col');
-        const colRect = col.getBoundingClientRect();
         const startY = e.clientY;
         const startDuration = block.duration;
 
@@ -6745,6 +6768,50 @@
         document.addEventListener('mouseup', onUp);
       });
     });
+
+    // Resize blocks (drag top edge — adjusts startHour and duration)
+    container.querySelectorAll('.wcal-block-resize-top').forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const blockEl = handle.closest('.wcal-block');
+        const wpId = blockEl.dataset.wpId;
+        const block = weekPlan.find(b => b.id === wpId);
+        if (!block) return;
+
+        const startY = e.clientY;
+        const origStart = block.startHour;
+        const origEnd = block.startHour + block.duration;
+
+        function onMove(ev) {
+          const deltaY = ev.clientY - startY;
+          const deltaHours = deltaY / WCAL_PX_PER_HOUR;
+          let newStart = snapHour(origStart + deltaHours);
+          newStart = Math.max(WCAL_START, Math.min(origEnd - WCAL_SNAP, newStart));
+          block.startHour = newStart;
+          block.duration = origEnd - newStart;
+          blockEl.style.top = ((newStart - WCAL_START) * WCAL_PX_PER_HOUR) + 'px';
+          blockEl.style.height = (block.duration * WCAL_PX_PER_HOUR) + 'px';
+          const timeLabel = blockEl.querySelector('.wcal-block-time');
+          if (timeLabel) timeLabel.textContent = `${hourToLabel(block.startHour)}–${hourToLabel(block.startHour + block.duration)}`;
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          saveState();
+          renderWeekCalendar(container, weekStart, compact);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
+
+    // Scroll to 8am by default
+    const scrollTarget = 8 * WCAL_PX_PER_HOUR; // 8am position
+    const scrollParent = container.closest('.week-panel-body') || container.closest('.myday-wcal-wrap') || container;
+    if (scrollParent && scrollParent.scrollHeight > scrollParent.clientHeight) {
+      // Only auto-scroll if not already scrolled by user
+      if (scrollParent.scrollTop === 0) scrollParent.scrollTop = scrollTarget;
+    }
   }
 
   // === Floating Week Panel ===
