@@ -4753,7 +4753,7 @@
     const src = (item.source || '').toLowerCase();
     const status = (item.status || '').toLowerCase();
     if (src === 'content') return 'Content';
-    if (src === 'calendar' || status === 'meeting') return 'Calendar Events';
+    if (src === 'calendar' || src === 'event' || status === 'meeting') return 'Calendar Events';
     if (src === 'meeting') return 'Meeting Notes';
     if (src === 'jira') return 'Jira Tasks';
     if (src === 'slack') return 'Slack Tasks';
@@ -6727,9 +6727,12 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const wpId = btn.closest('.wcal-block').dataset.wpId;
-        weekPlan = weekPlan.filter(b => b.id !== wpId);
-        saveState();
-        renderWeekCalendar(container, weekStart, compact);
+        const block = weekPlan.find(b => b.id === wpId);
+        const blockName = block ? (block.taskId ? (tasks.find(t => t.id === block.taskId)?.title || 'Task') : (block.title || 'Untitled')) : 'this item';
+        showConfirm('Remove from calendar?', `"${blockName}" will be moved to trash.`, () => {
+          deleteCalendarBlock(wpId);
+          refreshAllCalendars();
+        });
       });
     });
 
@@ -7073,11 +7076,15 @@
     document.getElementById('evtCancel').onclick = () => closeEventModal();
     document.getElementById('evtDelete').onclick = () => {
       if (block.id) {
-        weekPlan = weekPlan.filter(b => b.id !== block.id);
-        saveState();
+        const blockName = block.title || 'Untitled';
+        showConfirm('Delete event?', `"${blockName}" will be moved to trash. This can be restored within 30 days.`, () => {
+          deleteCalendarBlock(block.id);
+          closeEventModal();
+          refreshAllCalendars();
+        });
+      } else {
+        closeEventModal();
       }
-      closeEventModal();
-      refreshAllCalendars();
     };
     document.getElementById('evtConvert').onclick = () => convertEventToTask();
 
@@ -7095,6 +7102,27 @@
     // Reopen drawer if it was open before
     if (_evtModalState && _evtModalState._wasDrawerOpen && window._openWeekPanel) window._openWeekPanel();
     _evtModalState = null;
+  }
+
+  function deleteCalendarBlock(wpId) {
+    const block = weekPlan.find(b => b.id === wpId);
+    if (!block) return;
+    // Build a trash item from the block
+    const task = block.taskId ? tasks.find(t => t.id === block.taskId) : null;
+    const trashItem = {
+      id: block.id,
+      title: task ? task.title : (block.title || 'Untitled'),
+      source: 'event',
+      priority: task ? task.priority : 'medium',
+      due: block.date,
+      time: hourToLabel(block.startHour),
+      space: block.space || (task ? task.space : ''),
+      deletedAt: Date.now()
+    };
+    trash.push(trashItem);
+    weekPlan = weekPlan.filter(b => b.id !== wpId);
+    saveState();
+    updateTrashBadge();
   }
 
   function refreshAllCalendars() {
