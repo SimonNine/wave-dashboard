@@ -1724,6 +1724,7 @@
     .mn-notes-area li, .mn-agenda-area li { margin: 2px 0; }
     .mn-notes-area blockquote, .mn-agenda-area blockquote { border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px; color: var(--text-secondary); font-style: italic; }
     .mn-notes-area hr, .mn-agenda-area hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .wcal-checklist-item { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
 
     /* Agenda area — subtle, collapsible */
     .mn-agenda-section { margin-bottom: 16px; }
@@ -8194,6 +8195,7 @@
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); document.execCommand('bold', false); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') { e.preventDefault(); document.execCommand('italic', false); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'u') { e.preventDefault(); document.execCommand('underline', false); }
+      handleChecklistEnter(e);
     });
     // Link click handling inside contentEditable
     notesEl.addEventListener('click', (e) => {
@@ -8808,6 +8810,7 @@
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
       else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
       else if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); mnFmt('underline'); }
+      handleChecklistEnter(e);
     });
     notesEl.addEventListener('input', updateMnWordCount);
     // Link click handling
@@ -9017,6 +9020,37 @@
   }
 
   // Rich text formatting — operates on whichever contenteditable area is focused
+  // Handle Enter key inside checklist items — create new checklist row or exit if empty
+  function handleChecklistEnter(e) {
+    if (e.key !== 'Enter') return;
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const node = sel.anchorNode;
+    const checklistItem = node?.nodeType === 3 ? node.parentElement?.closest('.wcal-checklist-item') : node?.closest?.('.wcal-checklist-item');
+    if (!checklistItem) return;
+
+    e.preventDefault();
+    // If the span text is empty, exit checklist mode (remove the empty item, insert a plain line break)
+    const span = checklistItem.querySelector('span');
+    if (span && span.textContent.trim() === '') {
+      checklistItem.remove();
+      document.execCommand('insertHTML', false, '<br>');
+      return;
+    }
+    // Insert a new checklist item after the current one
+    const newItem = document.createElement('div');
+    newItem.className = 'wcal-checklist-item';
+    newItem.innerHTML = '<input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;"> <span></span>';
+    checklistItem.insertAdjacentElement('afterend', newItem);
+    // Place cursor in the new span
+    const newSpan = newItem.querySelector('span');
+    const range = document.createRange();
+    range.setStart(newSpan, 0);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   function mnFmt(type) {
     // Find the active editor (notes or agenda)
     const focused = document.activeElement;
@@ -9042,7 +9076,7 @@
         const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
         const label = (range && !range.collapsed) ? range.toString() : '';
         document.execCommand('insertHTML', false,
-          `<label style="display:flex;align-items:center;gap:6px;margin:2px 0;cursor:pointer;"><input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;"> <span>${label}</span></label>`);
+          `<div class="wcal-checklist-item"><input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;"> <span>${label}</span></div>`);
         break;
       }
       case 'image': {
