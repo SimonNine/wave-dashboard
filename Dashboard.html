@@ -765,60 +765,74 @@
     .btn-conflict.primary { background: var(--accent); color: white; border-color: var(--accent); }
 
     /* ===== MY DAY VIEW ===== */
-    .myday-container { flex: 1; overflow-y: auto; padding-right: 12px; }
-    .myday-greeting { margin-bottom: 32px; }
-    .myday-greeting h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
-    .myday-greeting p { font-size: 14px; color: var(--text-secondary); }
-    .myday-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    /* ===== MY DAY — Refined Layout ===== */
+    .myday-container { flex: 1; overflow-y: auto; padding: 0 24px 40px; }
+    .myday-inner { max-width: 1100px; margin: 0 auto; }
+    .myday-greeting { margin-bottom: 28px; }
+    .myday-greeting h2 { font-size: 32px; font-weight: 600; letter-spacing: -0.8px; margin-bottom: 4px; color: var(--text); }
+    .myday-greeting-date { font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; }
+    .myday-greeting-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+    .myday-stat { font-size: 12px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); padding: 3px 12px; border-radius: 20px; }
+    .myday-sections { display: flex; flex-direction: column; gap: 28px; }
+    .myday-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 900px) { .myday-two-col { grid-template-columns: 1fr; } }
     .myday-section { min-width: 0; }
     .myday-section-header {
-      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-      color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px; padding-left: 10px;
+      border-left: 3px solid var(--accent);
     }
-    .myday-section-count {
-      background: var(--accent); color: white; font-size: 10px; padding: 2px 6px;
-      border-radius: 10px; font-weight: 700;
+    .myday-section-count { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+    .myday-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
+
+    /* Starred task cards */
+    .myday-task-card {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xs);
+      margin-bottom: 6px; cursor: pointer; transition: all 0.15s ease;
     }
-    .myday-task {
-      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
-      background: var(--surface); border: 1px dotted var(--border); border-radius: var(--radius-xs);
-      margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease;
-    }
-    .myday-task:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(60, 50, 40, 0.08); }
+    .myday-task-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 3px 12px var(--card-shadow); }
     .myday-task-check {
-      width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 50%;
+      width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 50%;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
-      flex-shrink: 0; transition: all 0.2s ease; font-size: 12px;
+      flex-shrink: 0; transition: all 0.15s ease; font-size: 11px;
     }
     .myday-task-check:hover { border-color: var(--success); }
     .myday-task-check.done { background: var(--success); border-color: var(--success); color: white; }
-    .myday-task-content { flex: 1; min-width: 0; }
-    .myday-task-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-    .myday-task-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; align-items: center; }
+    .myday-task-info { flex: 1; min-width: 0; }
+    .myday-task-name { font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .myday-task-name.done-text { text-decoration: line-through; color: var(--text-muted); }
+    .myday-task-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 6px; align-items: center; }
     .myday-task-remove {
-      width: 24px; height: 24px; border: none; background: transparent; color: var(--text-muted);
-      cursor: pointer; font-size: 14px; opacity: 0; transition: all 0.2s ease; flex-shrink: 0;
+      width: 22px; height: 22px; border: none; background: transparent; color: var(--text-muted);
+      cursor: pointer; font-size: 13px; opacity: 0; transition: all 0.15s ease; flex-shrink: 0;
     }
-    .myday-task:hover .myday-task-remove { opacity: 1; }
-    .myday-task-remove:hover { color: var(--urgent); }
+    .myday-task-card:hover .myday-task-remove { opacity: 0.6; }
+    .myday-task-remove:hover { opacity: 1 !important; color: var(--urgent); }
+    .myday-prio-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
     .myday-empty {
-      padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;
-      border: 1px dotted var(--border); border-radius: var(--radius-xs); background: var(--surface);
+      padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px;
+      border: 1px dashed var(--border); border-radius: var(--radius-xs); background: var(--surface);
     }
-    .myday-empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .myday-empty-icon { font-size: 24px; margin-bottom: 8px; opacity: 0.5; }
     .myday-add-btn {
-      margin-top: 8px; padding: 10px 16px; border: 1px dotted var(--border); border-radius: var(--radius-xs);
-      background: transparent; color: var(--text-secondary); font-size: 13px; cursor: pointer;
-      transition: all 0.2s ease; width: 100%; text-align: center;
+      margin-top: 6px; padding: 8px 14px; border: 1px dashed var(--border); border-radius: var(--radius-xs);
+      background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;
+      transition: all 0.15s ease; width: 100%; text-align: center;
     }
     .myday-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
     .myday-event {
-      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-      background: var(--surface); border: 1px dotted var(--border); border-radius: var(--radius-xs);
-      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xs);
+      margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
     }
-    .myday-event-time { font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; min-width: 60px; }
+    .myday-event:hover { border-color: var(--accent); }
+    .myday-event-time { font-size: 11px; font-weight: 700; color: var(--accent); white-space: nowrap; min-width: 50px; }
     .myday-event-title { font-size: 13px; color: var(--text); }
+    .myday-space-label { font-size: 11px; font-weight: 600; color: var(--text-muted); padding: 8px 0 4px; }
+    .myday-task-card:hover .myday-evt-unstar { opacity: 0.6 !important; }
+    .myday-evt-unstar:hover { opacity: 1 !important; color: var(--urgent); }
 
     /* ===== TRIAGE INBOX VIEW ===== */
     .triage-container { flex: 1; overflow-y: auto; padding-right: 12px; }
@@ -1865,7 +1879,6 @@
       .sidebar { width: 180px; }
       .column { flex: 0 0 260px; }
       .add-column-btn { width: 260px; }
-      .myday-sections { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
       .sidebar { display: none; }
@@ -1883,7 +1896,7 @@
       .conflict-comparison { grid-template-columns: 1fr; }
       .filter-bar { gap: 8px; margin-bottom: 12px; }
       .tabs { margin-bottom: 12px; }
-      .myday-sections { grid-template-columns: 1fr; }
+      .myday-two-col { grid-template-columns: 1fr; }
       .cmd-palette { width: 95vw; }
       .timer-widget { bottom: 12px; right: 12px; min-width: 160px; }
     }
@@ -1975,12 +1988,12 @@
     .wcal-block.done-block .wcal-block-title { text-decoration: line-through; }
 
     /* My Day embed compact calendar */
-    .myday-wcal-wrap { border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; max-height: 500px; overflow-y: auto; }
-    .myday-wcal-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
-    .myday-wcal-title { font-size: 13px; font-weight: 700; color: var(--text); }
-    .myday-wcal-nav { display: flex; gap: 4px; }
-    .myday-wcal-nav button { background: none; border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 2px 8px; cursor: pointer; color: var(--text-muted); font-size: 12px; }
-    .myday-wcal-nav button:hover { border-color: var(--accent); color: var(--accent); }
+    .myday-wcal-wrap { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; max-height: 600px; overflow-y: auto; box-shadow: 0 2px 12px var(--card-shadow); }
+    .myday-wcal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .myday-wcal-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .myday-wcal-nav { display: flex; gap: 3px; align-items: center; }
+    .myday-wcal-nav button { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; cursor: pointer; color: var(--text-secondary); font-size: 12px; font-weight: 500; transition: all 0.15s; }
+    .myday-wcal-nav button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
     @media print { .no-print { display: none !important; } }
   </style>
@@ -7311,18 +7324,52 @@
     // todayEvents removed — replaced by embedded weekly calendar
     const completedCount = myDayTasks.filter(t => t.column === 'done').length;
 
-    let html = `<div class="myday-greeting">
+    const todayFormatted = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const weekEventCount = weekPlan.filter(b => {
+      const mon = getMonday(now);
+      const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+      return b.date >= dateStr(mon) && b.date <= dateStr(sun);
+    }).length;
+
+    let html = `<div class="myday-inner">`;
+
+    // — Hero greeting
+    html += `<div class="myday-greeting">
       <h2>${greeting}, Simon</h2>
-      <p>${myDayTasks.length} tasks planned for today${completedCount > 0 ? ` · ${completedCount} completed` : ''}</p>
+      <div class="myday-greeting-date">${todayFormatted}</div>
+      <div class="myday-greeting-stats">
+        <span class="myday-stat">★ ${myDayTasks.length} starred</span>
+        ${completedCount > 0 ? `<span class="myday-stat">✓ ${completedCount} done</span>` : ''}
+        <span class="myday-stat">◉ ${weekEventCount} this week</span>
+      </div>
     </div>`;
 
     html += '<div class="myday-sections">';
 
-    html += '<div class="myday-section"><div class="myday-section-header">Starred Tasks <span class="myday-section-count">' + myDayTasks.length + '</span></div>';
+    // — Weekly Calendar (hero element)
+    if (!_mydayWeekStartDate) _mydayWeekStartDate = getMonday(new Date());
+    const mdWeekLabel = formatWeekLabel(_mydayWeekStartDate);
+    html += `<div class="myday-section">
+      <div class="myday-wcal-header">
+        <div class="myday-wcal-title">${mdWeekLabel}</div>
+        <div class="myday-wcal-nav">
+          <button id="mdWcalPrev">←</button>
+          <button id="mdWcalToday">Today</button>
+          <button id="mdWcalNext">→</button>
+          <button id="mdWcalExport" title="Export week to iCal">↓</button>
+        </div>
+      </div>
+      <div class="myday-wcal-wrap" id="mdWcalContainer"></div>
+    </div>`;
+
+    // — Two-column: Starred Tasks + Smart Feed
+    html += '<div class="myday-two-col">';
+
+    // Left: Starred Tasks
+    html += `<div class="myday-section"><div class="myday-section-header">Starred Tasks <span class="myday-section-count">${myDayTasks.length}</span></div>`;
     if (myDayTasks.length === 0) {
-      html += '<div class="myday-empty"><div class="myday-empty-icon">★</div>Star tasks from the board or use ⌘K to search and add.</div>';
+      html += '<div class="myday-empty"><div class="myday-empty-icon">★</div>Star tasks from the board or use ⌘K to add.</div>';
     } else {
-      // Group tasks by space
       const spaceGroups = {};
       myDayTasks.forEach(task => {
         const sid = task.space || 'unassigned';
@@ -7332,57 +7379,39 @@
       Object.entries(spaceGroups).forEach(([sid, groupTasks]) => {
         const space = spaces.find(s => s.id === sid);
         const spaceName = space ? `${space.icon} ${space.name}` : 'Unassigned';
-        html += `<div style="margin-bottom:12px;">`;
-        html += `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;padding:6px 0;border-bottom:1px dotted var(--border);margin-bottom:4px;">${spaceName}</div>`;
-        html += `<table style="width:100%;border-collapse:collapse;">`;
+        html += `<div class="myday-space-label">${spaceName}</div>`;
         groupTasks.forEach(task => {
           const isDone = task.column === 'done';
-          const carryoverBadge = task.myDayCarryover && !isDone ? '<span class="myday-carryover-badge">↩ carried over</span>' : '';
-          html += `<tr class="myday-task-row" data-task-id="${task.id}" style="cursor:pointer;">
-            <td style="width:32px;padding:8px 4px;vertical-align:middle;"><div class="myday-task-check ${isDone ? 'done' : ''}" data-task-id="${task.id}" style="margin:0;">${isDone ? '✓' : ''}</div></td>
-            <td style="padding:8px 8px;font-size:13px;color:var(--text);${isDone ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${getTaskDisplayTitle(task)}${carryoverBadge}</td>
-            <td style="width:70px;padding:8px 4px;"><span class="priority-badge priority-${task.priority}" style="font-size:10px;">${task.priority}</span></td>
-            <td style="width:90px;padding:8px 4px;font-size:11px;color:var(--text-muted);">${task.due || ''}</td>
-            <td style="width:28px;padding:8px 0;text-align:center;"><button class="myday-task-remove" data-task-id="${task.id}" title="Unstar task" style="font-size:12px;">✕</button></td>
-          </tr>`;
+          const carryoverBadge = task.myDayCarryover && !isDone ? ' <span class="myday-carryover-badge">↩ carried over</span>' : '';
+          const prioColor = task.priority === 'urgent' ? 'var(--urgent)' : task.priority === 'high' ? 'var(--high)' : task.priority === 'medium' ? 'var(--medium)' : 'var(--low)';
+          html += `<div class="myday-task-card myday-task-row" data-task-id="${task.id}">
+            <div class="myday-task-check ${isDone ? 'done' : ''}" data-task-id="${task.id}">${isDone ? '✓' : ''}</div>
+            <div class="myday-prio-dot" style="background:${prioColor};"></div>
+            <div class="myday-task-info">
+              <div class="myday-task-name${isDone ? ' done-text' : ''}">${getTaskDisplayTitle(task)}${carryoverBadge}</div>
+              <div class="myday-task-detail">${task.due ? `<span>${task.due}</span>` : ''}${task.priority ? `<span>${task.priority}</span>` : ''}</div>
+            </div>
+            <button class="myday-task-remove" data-task-id="${task.id}" title="Unstar">✕</button>
+          </div>`;
         });
-        html += '</table></div>';
       });
     }
     // Starred standalone events
     const starredEvents = weekPlan.filter(b => !b.taskId && b.starred);
     if (starredEvents.length > 0) {
-      html += `<div style="margin-bottom:12px;">`;
-      html += `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;padding:6px 0;border-bottom:1px dotted var(--border);margin-bottom:4px;">★ Events</div>`;
-      html += `<table style="width:100%;border-collapse:collapse;">`;
+      html += `<div class="myday-space-label">★ Events</div>`;
       starredEvents.forEach(evt => {
-        html += `<tr class="myday-task-row myday-event-row" data-wp-id="${evt.id}" style="cursor:pointer;">
-          <td style="width:32px;padding:8px 4px;vertical-align:middle;"><div style="width:8px;height:8px;border-radius:50%;background:${evt.color || 'var(--accent)'};margin:0 auto;"></div></td>
-          <td style="padding:8px 8px;font-size:13px;color:var(--text);">${(evt.title || 'Untitled').replace(/</g,'&lt;')}</td>
-          <td style="width:90px;padding:8px 4px;font-size:11px;color:var(--text-muted);">${evt.date || ''}</td>
-          <td style="width:70px;padding:8px 4px;font-size:11px;color:var(--text-muted);">${hourToLabel(evt.startHour)}</td>
-          <td style="width:28px;padding:8px 0;text-align:center;"><button class="myday-evt-unstar" data-wp-id="${evt.id}" title="Unstar event" style="font-size:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;">✕</button></td>
-        </tr>`;
+        html += `<div class="myday-task-card myday-event-row" data-wp-id="${evt.id}">
+          <div class="myday-prio-dot" style="background:${evt.color || 'var(--accent)'};"></div>
+          <div class="myday-task-info">
+            <div class="myday-task-name">${(evt.title || 'Untitled').replace(/</g,'&lt;')}</div>
+            <div class="myday-task-detail"><span>${evt.date || ''}</span><span>${hourToLabel(evt.startHour)}</span></div>
+          </div>
+          <button class="myday-evt-unstar" data-wp-id="${evt.id}" title="Unstar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity 0.15s;">✕</button>
+        </div>`;
       });
-      html += '</table></div>';
     }
     html += '<button class="myday-add-btn" id="mydayAddBtn">+ Star more tasks</button></div>';
-
-    // Embedded compact weekly calendar (Mon-Fri)
-    if (!_mydayWeekStartDate) _mydayWeekStartDate = getMonday(new Date());
-    const mdWeekLabel = formatWeekLabel(_mydayWeekStartDate);
-    html += `<div class="myday-section" style="grid-column:1/-1;">
-      <div class="myday-wcal-header">
-        <div class="myday-wcal-title">My Week — ${mdWeekLabel}</div>
-        <div class="myday-wcal-nav">
-          <button id="mdWcalPrev">←</button>
-          <button id="mdWcalToday">Today</button>
-          <button id="mdWcalNext">→</button>
-          <button id="mdWcalExport" title="Export week to iCal" style="margin-left:4px;">↓ iCal</button>
-        </div>
-      </div>
-      <div class="myday-wcal-wrap" id="mdWcalContainer"></div>
-    </div>`;
 
     // Smart Feed section
     const feedDedupCount = smartFeed.filter(f => {
@@ -7395,8 +7424,9 @@
         return titleMatch && dateMatch;
       });
     }).length;
+    // Right: Smart Feed
     html += `<div class="myday-section"><div class="myday-section-header">Smart Feed <span class="myday-section-count">${feedDedupCount}</span>
-      <button class="smart-feed-refresh-btn" id="smartFeedRefreshBtn" style="margin-left:auto;font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-secondary);cursor:pointer;">↻ Refresh</button>
+      <button class="smart-feed-refresh-btn" id="smartFeedRefreshBtn" style="margin-left:auto;font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:var(--bg);color:var(--text-muted);cursor:pointer;transition:all 0.15s;">↻</button>
     </div>`;
     // Filter out dismissed items AND items that already exist as tasks/calendar events
     const activeFeed = smartFeed.filter(f => {
@@ -7417,33 +7447,35 @@
       const sourceIcons = { calendar: '📅', slack: '💬', jira: '◫', gmail: '✉' };
       const sourceColors = { calendar: 'var(--medium)', slack: 'var(--success)', jira: 'var(--accent)', gmail: 'var(--urgent)' };
       activeFeed.forEach((item, idx) => {
-        html += `<div class="smart-feed-item" data-feed-idx="${idx}" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:8px;background:var(--surface);">
-          <div style="display:flex;align-items:flex-start;gap:10px;">
-            <span style="font-size:16px;margin-top:2px;">${sourceIcons[item.source] || '•'}</span>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">${item.title}</div>
-              ${item.subtitle ? `<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">${item.subtitle}</div>` : ''}
-              <div style="font-size:11px;color:var(--text-muted);">${item.source.charAt(0).toUpperCase() + item.source.slice(1)}${item.time ? ' · ' + item.time : ''}</div>
-            </div>
+        html += `<div class="smart-feed-item" data-feed-idx="${idx}" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:6px;background:var(--surface);transition:border-color 0.15s;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:14px;">${sourceIcons[item.source] || '•'}</span>
+            <div style="font-size:13px;font-weight:500;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.title}</div>
           </div>
-          <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-            <button class="sf-action-btn sf-create-task" data-feed-idx="${idx}" style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--accent-light);color:var(--accent);cursor:pointer;font-weight:600;">+ Create Task</button>
-            <button class="sf-action-btn sf-dismiss" data-feed-idx="${idx}" style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-muted);cursor:pointer;">Dismiss</button>
-            ${item.url ? `<a href="${item.url}" target="_blank" style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-secondary);cursor:pointer;text-decoration:none;display:inline-block;">Open ↗</a>` : ''}
-            ${item.source === 'calendar' && item.attendees && item.attendees.length > 1 ? `<button class="sf-action-btn sf-meeting-prep" data-feed-idx="${idx}" style="font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-secondary);cursor:pointer;">Prep Notes</button>` : ''}
+          ${item.subtitle ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;padding-left:22px;">${item.subtitle}</div>` : ''}
+          <div style="display:flex;gap:4px;padding-left:22px;margin-top:6px;">
+            <button class="sf-action-btn sf-create-task" data-feed-idx="${idx}" style="font-size:10px;padding:3px 8px;border:1px solid var(--accent);border-radius:20px;background:var(--accent-light);color:var(--accent);cursor:pointer;font-weight:600;">+ Task</button>
+            <button class="sf-action-btn sf-dismiss" data-feed-idx="${idx}" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text-muted);cursor:pointer;">Dismiss</button>
+            ${item.url ? `<a href="${item.url}" target="_blank" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text-secondary);cursor:pointer;text-decoration:none;">Open ↗</a>` : ''}
+            ${item.source === 'calendar' && item.attendees && item.attendees.length > 1 ? `<button class="sf-action-btn sf-meeting-prep" data-feed-idx="${idx}" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text-secondary);cursor:pointer;">Prep</button>` : ''}
           </div>
         </div>`;
       });
     }
     html += '</div>';
 
-    // Scratchpad section (synced with sidebar)
-    html += `<div class="myday-section" style="grid-column:1/-1;">
+    html += '</div>'; // close .myday-two-col
+
+    // — Scratchpad
+    html += `<div class="myday-section">
       <div class="myday-section-header">Scratchpad</div>
-      <textarea class="scratchpad-textarea" id="mydayScratchpad" placeholder="Quick notes, ideas, links..." style="min-height:140px;font-size:13px;">${(scratchpad || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      <div class="myday-card">
+        <textarea class="scratchpad-textarea" id="mydayScratchpad" placeholder="Quick notes, ideas, links..." style="min-height:120px;font-size:13px;border:none;background:transparent;width:100%;outline:none;color:var(--text);font-family:inherit;resize:vertical;">${(scratchpad || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      </div>
     </div>`;
 
-    html += '</div>';
+    html += '</div>'; // close .myday-sections
+    html += '</div>'; // close .myday-inner
 
     mydayView.innerHTML = html;
 
