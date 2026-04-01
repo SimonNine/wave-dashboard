@@ -7075,9 +7075,9 @@
       if (block.id) {
         weekPlan = weekPlan.filter(b => b.id !== block.id);
         saveState();
-        renderWeekCalendar(container, weekStart, compact);
       }
       closeEventModal();
+      refreshAllCalendars();
     };
     document.getElementById('evtConvert').onclick = () => convertEventToTask();
 
@@ -7097,6 +7097,13 @@
     _evtModalState = null;
   }
 
+  function refreshAllCalendars() {
+    // Refresh My Day if it's the active view
+    if (currentView === 'myday') renderMyDay();
+    // Refresh the floating panel if open
+    if (typeof window._refreshWeekPanel === 'function') window._refreshWeekPanel();
+  }
+
   function saveEvent() {
     if (!_evtModalState) return;
     const { block, container, weekStart, compact, isNew } = _evtModalState;
@@ -7107,13 +7114,12 @@
       block.id = 'wp-' + Date.now();
       weekPlan.push(block);
     } else {
-      // Update existing
       const existing = weekPlan.find(b => b.id === block.id);
       if (existing) Object.assign(existing, { title: block.title, space: block.space, starred: block.starred, color: block.color });
     }
     saveState();
-    renderWeekCalendar(container, weekStart, compact);
     closeEventModal();
+    refreshAllCalendars();
   }
 
   function convertEventToTask() {
@@ -7565,8 +7571,15 @@
           return sortDir === 'asc' ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate);
         });
       } else {
-        // Sort by boardOrder when no date sort active
-        sortedColTasks.sort((a, b) => (a.boardOrder || 0) - (b.boardOrder || 0));
+        // Sort by boardOrder when no date sort active; default newest first (by createdAt desc)
+        sortedColTasks.sort((a, b) => {
+          const aOrd = a.boardOrder; const bOrd = b.boardOrder;
+          // If neither has a manual boardOrder, sort newest first
+          if ((aOrd === undefined || aOrd === 0) && (bOrd === undefined || bOrd === 0)) {
+            return (b.createdAt || 0) - (a.createdAt || 0);
+          }
+          return (aOrd || 0) - (bOrd || 0);
+        });
       }
 
       const cards = document.createElement('div');
@@ -7960,6 +7973,10 @@
   function renderList() {
     const filtered = getFilteredTasks();
     let sorted = [...filtered];
+    // Default: newest first when no sort is active
+    if (!listSortColumn) {
+      sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
     if (listSortColumn) {
       sorted.sort((a, b) => {
         let aVal = a[listSortColumn] || '';
