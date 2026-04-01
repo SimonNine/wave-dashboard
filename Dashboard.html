@@ -7011,6 +7011,8 @@
 
     // Re-render when weekPlan changes externally
     window._refreshWeekPanel = () => { if (weekPanelOpen) renderPanel(); };
+    window._closeWeekPanel = closePanel;
+    window._openWeekPanel = openPanel;
   }
 
   // ===== EVENT MODAL (Quick Create / Edit) =====
@@ -7079,12 +7081,19 @@
     };
     document.getElementById('evtConvert').onclick = () => convertEventToTask();
 
+    // Close week panel if open so modal isn't behind it
+    const _wasDrawerOpen = weekPanelOpen;
+    if (_wasDrawerOpen && window._closeWeekPanel) window._closeWeekPanel();
+    _evtModalState._wasDrawerOpen = _wasDrawerOpen;
+
     document.getElementById('evtModalOverlay').classList.add('open');
     setTimeout(() => document.getElementById('evtTitle').focus(), 50);
   }
 
   function closeEventModal() {
     document.getElementById('evtModalOverlay').classList.remove('open');
+    // Reopen drawer if it was open before
+    if (_evtModalState && _evtModalState._wasDrawerOpen && window._openWeekPanel) window._openWeekPanel();
     _evtModalState = null;
   }
 
@@ -7135,23 +7144,35 @@
     if (wpEntry) wpEntry.taskId = newTask.id;
 
     saveState();
-    closeEventModal();
+    // Close event modal WITHOUT reopening drawer (we're going to task editor)
+    document.getElementById('evtModalOverlay').classList.remove('open');
+    _evtModalState = null;
 
     // Open task modal for full editing
-    // Store a reference so we can revert if user cancels
     const revertTaskId = newTask.id;
-    const origCloseModal = window._origCloseModalForRevert;
+    const taskSpace = space;
     openModal(newTask);
 
+    // Patch saveTask: on save, navigate to the task's board
+    const origSaveBtn = document.getElementById('modalSaveBtn');
+    const origSaveHandler = origSaveBtn.onclick;
+    origSaveBtn.addEventListener('click', function navAfterSave() {
+      // After save, switch to the task's space board
+      setTimeout(() => {
+        if (newTask.space && newTask.space !== 'unassigned') {
+          selectSpace(newTask.space);
+        }
+        switchView('board');
+      }, 50);
+      origSaveBtn.removeEventListener('click', navAfterSave);
+    }, { once: true });
+
     // Patch: if user discards (doesn't save), remove the task and unlink block
-    const _origDiscard = document.getElementById('unsavedDiscardBtn').onclick;
     document.getElementById('unsavedDiscardBtn').addEventListener('click', function revertHandler() {
-      // Remove task, unlink block
       const idx = tasks.findIndex(t => t.id === revertTaskId);
       if (idx !== -1) tasks.splice(idx, 1);
       if (wpEntry) { wpEntry.taskId = null; wpEntry.title = title; }
       saveState();
-      renderWeekCalendar(container, weekStart, compact);
       document.getElementById('unsavedDiscardBtn').removeEventListener('click', revertHandler);
     }, { once: true });
   }
@@ -7207,6 +7228,23 @@
         });
         html += '</table></div>';
       });
+    }
+    // Starred standalone events
+    const starredEvents = weekPlan.filter(b => !b.taskId && b.starred);
+    if (starredEvents.length > 0) {
+      html += `<div style="margin-bottom:12px;">`;
+      html += `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;padding:6px 0;border-bottom:1px dotted var(--border);margin-bottom:4px;">★ Events</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;">`;
+      starredEvents.forEach(evt => {
+        html += `<tr class="myday-task-row myday-event-row" data-wp-id="${evt.id}" style="cursor:pointer;">
+          <td style="width:32px;padding:8px 4px;vertical-align:middle;"><div style="width:8px;height:8px;border-radius:50%;background:${evt.color || 'var(--accent)'};margin:0 auto;"></div></td>
+          <td style="padding:8px 8px;font-size:13px;color:var(--text);">${(evt.title || 'Untitled').replace(/</g,'&lt;')}</td>
+          <td style="width:90px;padding:8px 4px;font-size:11px;color:var(--text-muted);">${evt.date || ''}</td>
+          <td style="width:70px;padding:8px 4px;font-size:11px;color:var(--text-muted);">${hourToLabel(evt.startHour)}</td>
+          <td style="width:28px;padding:8px 0;text-align:center;"><button class="myday-evt-unstar" data-wp-id="${evt.id}" title="Unstar event" style="font-size:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;">✕</button></td>
+        </tr>`;
+      });
+      html += '</table></div>';
     }
     html += '<button class="myday-add-btn" id="mydayAddBtn">+ Star more tasks</button></div>';
 
@@ -7337,6 +7375,21 @@
       el.addEventListener('click', () => {
         const task = tasks.find(t => t.id === el.dataset.taskId);
         if (task) openModal(task);
+      });
+    });
+    // Starred events — click to edit, ✕ to unstar
+    mydayView.querySelectorAll('.myday-event-row[data-wp-id]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.myday-evt-unstar')) return;
+        const block = weekPlan.find(b => b.id === el.dataset.wpId);
+        if (block) openEventModal(block, document.getElementById('mdWcalContainer') || mydayView, _mydayWeekStartDate, true);
+      });
+    });
+    mydayView.querySelectorAll('.myday-evt-unstar').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const block = weekPlan.find(b => b.id === btn.dataset.wpId);
+        if (block) { block.starred = false; saveState(); renderMyDay(); }
       });
     });
     const addBtn = mydayView.querySelector('#mydayAddBtn');
