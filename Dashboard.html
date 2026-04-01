@@ -1337,9 +1337,33 @@
     .modal-notes-area {
       width: 100%; border: none; outline: none; background: transparent;
       color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.7;
-      resize: none; min-height: 160px; padding: 0;
+      min-height: 160px; padding: 0;
     }
-    .modal-notes-area::placeholder { color: var(--border); }
+    .modal-notes-area:empty:before { content: attr(data-placeholder); color: var(--border); pointer-events: none; }
+    .modal-notes-area strong { font-weight: 700; }
+    .modal-notes-area em { font-style: italic; }
+    .modal-notes-area u { text-decoration: underline; }
+    .modal-notes-area s { text-decoration: line-through; }
+    .modal-notes-area h2 { font-size: 18px; font-weight: 700; margin: 16px 0 6px; line-height: 1.3; }
+    .modal-notes-area ul, .modal-notes-area ol { padding-left: 22px; margin: 4px 0; }
+    .modal-notes-area li { margin: 2px 0; }
+    .modal-notes-area blockquote { border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px; color: var(--text-secondary); font-style: italic; }
+    .modal-notes-area hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .modal-fmt-bar { display: flex; align-items: center; gap: 2px; padding: 6px 0; margin-bottom: 4px; flex-wrap: wrap; }
+    .modal-fmt-bar .mn-fmt-btn { font-size: 12px; }
+
+    /* Inline images in notes */
+    .modal-notes-area img, .mn-notes-area img, .mn-agenda-area img { max-width: 100%; border-radius: 6px; margin: 8px 0; display: block; cursor: default; }
+
+    /* Styled link pills — themed */
+    .note-link, .modal-notes-area a, .mn-notes-area a, .mn-agenda-area a {
+      display: inline-block; background: var(--accent-light); color: var(--accent); padding: 1px 10px;
+      border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 500;
+      transition: all 0.15s; cursor: pointer; word-break: break-all;
+    }
+    .note-link:hover, .modal-notes-area a:hover, .mn-notes-area a:hover, .mn-agenda-area a:hover {
+      background: var(--accent); color: white; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
 
     /* Subtasks section — clean like notes action items */
     .modal-subtasks-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
@@ -2313,7 +2337,16 @@
         <hr class="modal-sep">
 
         <!-- Main notes/description area -->
-        <textarea class="modal-notes-area" id="modalNotes" placeholder="Write notes, ideas, descriptions..."></textarea>
+        <div class="modal-fmt-bar" id="modalFmtBar">
+          <button class="mn-fmt-btn" onclick="taskFmt('bold')" title="Bold"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg></button>
+          <button class="mn-fmt-btn" onclick="taskFmt('italic')" title="Italic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+          <button class="mn-fmt-btn" onclick="taskFmt('bullet')" title="Bullet list"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg></button>
+          <button class="mn-fmt-btn" onclick="taskFmt('heading')" title="Heading"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M6 12h12"/></svg></button>
+          <span class="mn-fmt-sep"></span>
+          <button class="mn-fmt-btn" onclick="taskFmt('image')" title="Insert image"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+          <input type="file" id="modalNotesImageInput" accept="image/*" style="display:none;">
+        </div>
+        <div class="modal-notes-area" id="modalNotes" contenteditable="true" data-placeholder="Write notes, ideas, descriptions..."></div>
 
         <!-- Subtasks -->
         <div class="modal-subtasks-section">
@@ -7650,7 +7683,7 @@
     populateStatusDropdown(task.space, task.column);
     document.getElementById('modalDueDate').value = task.due || '';
     document.getElementById('modalTime').value = task.time || '';
-    document.getElementById('modalNotes').value = task.notes || '';
+    document.getElementById('modalNotes').innerHTML = task.notes || '';
     document.getElementById('modalRecurring').value = task.recurring || '';
     document.getElementById('modalTime').style.display = task.source === 'Calendar' ? 'inline-block' : 'none';
     const fromField = document.getElementById('modalFrom');
@@ -7716,19 +7749,29 @@
 
     // Auto-resize notes textarea
     const notesEl = document.getElementById('modalNotes');
-    const autoResize = () => { notesEl.style.height = 'auto'; notesEl.style.height = Math.max(160, notesEl.scrollHeight) + 'px'; };
-    notesEl.addEventListener('input', autoResize);
-    setTimeout(autoResize, 0);
-
-    // Tab key support in notes
+    // Keyboard shortcuts for task notes
     notesEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const start = notesEl.selectionStart;
-        const end = notesEl.selectionEnd;
-        notesEl.value = notesEl.value.substring(0, start) + '    ' + notesEl.value.substring(end);
-        notesEl.selectionStart = notesEl.selectionEnd = start + 4;
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); document.execCommand('bold', false); }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') { e.preventDefault(); document.execCommand('italic', false); }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'u') { e.preventDefault(); document.execCommand('underline', false); }
+    });
+    // Link click handling inside contentEditable
+    notesEl.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (link && link.href) { e.preventDefault(); window.open(link.href, '_blank'); }
+    });
+    // Auto-linkify on input
+    notesEl.addEventListener('input', () => linkifyEditor(notesEl));
+    // Linkify existing content on open
+    linkifyEditor(notesEl);
+    // Image drag-drop
+    setupEditorImageDrop(notesEl);
+    // Image button
+    const imgInput = document.getElementById('modalNotesImageInput');
+    document.querySelector('#modalFmtBar .mn-fmt-btn[onclick*="image"]')?.addEventListener('click', () => {});
+    imgInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) insertImageFile(notesEl, e.target.files[0]);
+      e.target.value = '';
     });
 
     initLinkPickers(task);
@@ -7885,7 +7928,7 @@
       fireCelebration();
       handleRecurringTask(editingTask);
     }
-    editingTask.notes = document.getElementById('modalNotes').value;
+    editingTask.notes = document.getElementById('modalNotes').innerHTML;
     editingTask.recurring = document.getElementById('modalRecurring').value;
     // linked invoice / note are mutated directly by renderLinkControl; just ensure they persist
     if (!editingTask.linkedInvoiceId) delete editingTask.linkedInvoiceId;
@@ -8250,6 +8293,9 @@
       <span class="mn-fmt-sep"></span>
       <button class="mn-fmt-btn" onclick="mnFmt('quote')" title="Quote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg></button>
       <button class="mn-fmt-btn" onclick="mnFmt('divider')" title="Divider"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="12" x2="22" y2="12"/></svg></button>
+      <span class="mn-fmt-sep"></span>
+      <button class="mn-fmt-btn" onclick="mnFmt('image')" title="Insert image"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+      <input type="file" id="mnImageInput" accept="image/*" style="display:none;">
     </div>`;
 
     let html = `
@@ -8324,6 +8370,35 @@
       else if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); mnFmt('underline'); }
     });
     notesEl.addEventListener('input', updateMnWordCount);
+    // Link click handling
+    notesEl.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (link && link.href) { e.preventDefault(); window.open(link.href, '_blank'); }
+    });
+    // Auto-linkify on input
+    notesEl.addEventListener('input', () => linkifyEditor(notesEl));
+    linkifyEditor(notesEl);
+    // Image drag-drop
+    setupEditorImageDrop(notesEl);
+    // Image file input
+    const mnImgInput = document.getElementById('mnImageInput');
+    if (mnImgInput) {
+      mnImgInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) insertImageFile(notesEl, e.target.files[0]);
+        e.target.value = '';
+      });
+    }
+    // Same for agenda
+    const agendaEl = document.getElementById('mnAgenda');
+    if (agendaEl) {
+      agendaEl.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && link.href) { e.preventDefault(); window.open(link.href, '_blank'); }
+      });
+      agendaEl.addEventListener('input', () => linkifyEditor(agendaEl));
+      linkifyEditor(agendaEl);
+      setupEditorImageDrop(agendaEl);
+    }
 
     clearDirty();
     document.getElementById('mnModalOverlay').classList.add('open');
@@ -8530,8 +8605,120 @@
           `<div style="display:flex;align-items:baseline;gap:6px;"><input type="checkbox" style="margin-top:3px;accent-color:var(--accent);"> <span>${label}</span></div>`);
         break;
       }
+      case 'image': {
+        const input = document.getElementById('mnImageInput');
+        if (input) input.click();
+        return; // don't update word count yet
+      }
     }
     updateMnWordCount();
+  }
+
+  // === Task notes formatting (mirrors mnFmt for task modal) ===
+  function taskFmt(type) {
+    const editor = document.getElementById('modalNotes');
+    if (!editor) return;
+    if (type === 'image') {
+      const input = document.getElementById('modalNotesImageInput');
+      if (input) input.click();
+      return;
+    }
+    editor.focus();
+    switch (type) {
+      case 'bold':        document.execCommand('bold', false); break;
+      case 'italic':      document.execCommand('italic', false); break;
+      case 'underline':   document.execCommand('underline', false); break;
+      case 'heading':     document.execCommand('formatBlock', false, 'h2'); break;
+      case 'bullet':      document.execCommand('insertUnorderedList', false); break;
+      case 'numbered':    document.execCommand('insertOrderedList', false); break;
+      case 'quote':       document.execCommand('formatBlock', false, 'blockquote'); break;
+    }
+  }
+
+  // === Shared: insert image file as base64 into contentEditable ===
+  function insertImageFile(editor, file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      editor.focus();
+      document.execCommand('insertHTML', false, `<img src="${ev.target.result}" style="max-width:100%;border-radius:6px;margin:8px 0;display:block;">`);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // === Shared: drag-drop images onto contentEditable ===
+  function setupEditorImageDrop(editor) {
+    editor.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }
+    });
+    editor.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length > 0) {
+          e.preventDefault(); e.stopPropagation();
+          imageFiles.forEach(f => insertImageFile(editor, f));
+        }
+      }
+    });
+  }
+
+  // === Shared: auto-detect URLs and wrap in <a> tags ===
+  function linkifyEditor(editor) {
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+    const urlPattern = /https?:\/\/[^\s<>"']+/g;
+    const nodesToProcess = [];
+    let node;
+    while (node = walker.nextNode()) {
+      // Skip if already inside an <a> tag
+      if (node.parentElement.closest('a')) continue;
+      if (urlPattern.test(node.textContent)) {
+        nodesToProcess.push(node);
+      }
+      urlPattern.lastIndex = 0;
+    }
+    if (nodesToProcess.length === 0) return;
+    // Save cursor position
+    const sel = window.getSelection();
+    let savedRange = null;
+    if (sel.rangeCount > 0) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
+    nodesToProcess.forEach(textNode => {
+      const text = textNode.textContent;
+      urlPattern.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let lastIdx = 0;
+      let match;
+      while (match = urlPattern.exec(text)) {
+        if (match.index > lastIdx) {
+          frag.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
+        }
+        const a = document.createElement('a');
+        a.href = match[0];
+        a.target = '_blank';
+        a.className = 'note-link';
+        a.textContent = match[0];
+        frag.appendChild(a);
+        // Add a space after the link so cursor can be placed after it
+        frag.appendChild(document.createTextNode(' '));
+        lastIdx = match.index + match[0].length;
+      }
+      if (lastIdx < text.length) {
+        frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+      }
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+    // Restore cursor — place at end if saved range is lost
+    try {
+      if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
+    } catch(e) {
+      // Range may be invalid after DOM changes, place cursor at end
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      sel.removeAllRanges(); sel.addRange(range);
+    }
   }
 
   function addMnTask() {
