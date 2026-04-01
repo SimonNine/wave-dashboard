@@ -1936,6 +1936,34 @@
     .wcal-block-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
     .wcal-block-resize::after { content: ''; display: block; width: 20px; height: 2px; background: rgba(0,0,0,0.2); border-radius: 1px; margin: 2px auto 0; }
     .wcal-block.done-block { opacity: 0.5; }
+    .wcal-block.standalone-event { border-left: 3px solid currentColor; }
+    .wcal-preview-block { position: absolute; left: 2px; right: 2px; background: var(--accent-light); border: 1px dashed var(--accent); border-radius: 4px; opacity: 0.6; pointer-events: none; z-index: 5; }
+
+    /* Quick event modal */
+    .evt-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 8000; display: none; align-items: center; justify-content: center; }
+    .evt-modal-overlay.open { display: flex; }
+    .evt-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; min-width: 340px; max-width: 420px; color: var(--text); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.18); }
+    .evt-modal h3 { font-size: 16px; font-weight: 700; margin: 0; }
+    .evt-modal-time { font-size: 12px; color: var(--text-muted); margin-top: -8px; }
+    .evt-modal input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--bg); color: var(--text); font-family: inherit; font-size: 14px; outline: none; }
+    .evt-modal input[type="text"]:focus { border-color: var(--accent); }
+    .evt-modal select { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--bg); color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+    .evt-modal-colors { display: flex; gap: 6px; align-items: center; }
+    .evt-color-swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.15s; }
+    .evt-color-swatch:hover { transform: scale(1.15); }
+    .evt-color-swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg); }
+    .evt-modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .evt-modal-actions .btn { padding: 8px 18px; border-radius: var(--radius-xs); font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); transition: all 0.15s; }
+    .evt-btn-save { background: var(--accent); color: white; border-color: var(--accent) !important; }
+    .evt-btn-save:hover { opacity: 0.9; }
+    .evt-btn-cancel { background: var(--surface); color: var(--text-secondary); }
+    .evt-btn-cancel:hover { border-color: var(--accent); color: var(--accent); }
+    .evt-btn-convert { background: transparent; color: var(--accent); border-color: var(--accent) !important; }
+    .evt-btn-convert:hover { background: var(--accent-light); }
+    .evt-btn-delete { background: transparent; color: var(--urgent); border-color: var(--urgent) !important; font-size: 12px; padding: 6px 12px; }
+    .evt-btn-delete:hover { background: color-mix(in srgb, var(--urgent) 10%, transparent); }
+    .evt-star-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 6px 14px; cursor: pointer; font-size: 14px; color: var(--text-muted); transition: all 0.15s; }
+    .evt-star-btn.active { color: #F4C150; border-color: #F4C150; }
     .wcal-block.done-block .wcal-block-title { text-decoration: line-through; }
 
     /* My Day embed compact calendar */
@@ -2688,6 +2716,29 @@
 <div class="confetti-container" id="confettiContainer"></div>
 
 <!-- Confirm dialog -->
+<!-- Quick Event Modal -->
+<div class="evt-modal-overlay" id="evtModalOverlay">
+  <div class="evt-modal" id="evtModal">
+    <h3 id="evtModalHeading">New Event</h3>
+    <div class="evt-modal-time" id="evtModalTime"></div>
+    <input type="text" id="evtTitle" placeholder="What's happening?" autocomplete="off">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="evtSpace"></select>
+      <button class="evt-star-btn" id="evtStar" title="Star">★</button>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">Colour</div>
+      <div class="evt-modal-colors" id="evtColors"></div>
+    </div>
+    <div class="evt-modal-actions">
+      <button class="btn evt-btn-delete" id="evtDelete" style="margin-right:auto;display:none;">Delete</button>
+      <button class="btn evt-btn-convert" id="evtConvert">Convert to Task →</button>
+      <button class="btn evt-btn-cancel" id="evtCancel">Cancel</button>
+      <button class="btn evt-btn-save" id="evtSave">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="confirm-overlay" id="confirmOverlay"></div>
 <div class="confirm-dialog" id="confirmDialog">
   <h3 id="confirmTitle">Confirm</h3>
@@ -6615,22 +6666,33 @@
         });
       });
       dayBlocks.forEach(block => {
-        const task = tasks.find(t => t.id === block.taskId);
-        if (!task) return;
+        const task = block.taskId ? tasks.find(t => t.id === block.taskId) : null;
+        // Skip task-linked blocks where the task no longer exists
+        if (block.taskId && !task) return;
+        const isStandalone = !block.taskId;
         const top = (block.startHour - WCAL_START) * WCAL_PX_PER_HOUR;
         const height = Math.max(block.duration * WCAL_PX_PER_HOUR, 15);
-        const isDone = task.column === 'done';
-        const prio = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium;
-        const bg = task.customColor || prio.bg;
-        const color = task.customColor ? '#fff' : prio.text;
+        const isDone = task ? task.column === 'done' : false;
+        let bg, color, displayTitle;
+        if (isStandalone) {
+          bg = block.color || 'var(--accent-light)';
+          color = block.color ? '#fff' : 'var(--accent)';
+          displayTitle = (block.title || 'Untitled').replace(/</g,'&lt;');
+        } else {
+          const prio = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium;
+          bg = task.customColor || prio.bg;
+          color = task.customColor ? '#fff' : prio.text;
+          displayTitle = (task.title || '').replace(/</g,'&lt;');
+        }
         const timeLabel = `${hourToLabel(block.startHour)}–${hourToLabel(block.startHour + block.duration)}`;
         const ov = overlapMap[block.id] || { col: 0, totalCols: 1 };
         const widthPct = Math.floor(100 / ov.totalCols);
         const leftPct = ov.col * widthPct;
         const overlapStyle = ov.totalCols > 1 ? `left:${leftPct}%;width:${widthPct}%;` : 'left:2px;right:2px;';
-        html += `<div class="wcal-block${isDone ? ' done-block' : ''}" data-wp-id="${block.id}" data-task-id="${block.taskId}" style="top:${top}px;height:${height}px;background:${bg};color:${color};${overlapStyle}" draggable="true">`;
+        const blockClasses = `wcal-block${isDone ? ' done-block' : ''}${isStandalone ? ' standalone-event' : ''}`;
+        html += `<div class="${blockClasses}" data-wp-id="${block.id}" data-task-id="${block.taskId || ''}" style="top:${top}px;height:${height}px;background:${bg};color:${color};${overlapStyle}" draggable="true">`;
         html += `<div class="wcal-block-resize-top"></div>`;
-        html += `<div class="wcal-block-title">${(task.title || '').replace(/</g,'&lt;')}</div>`;
+        html += `<div class="wcal-block-title">${displayTitle}</div>`;
         if (height >= 30) html += `<div class="wcal-block-time">${timeLabel}</div>`;
         html += `<button class="wcal-block-remove" title="Remove from calendar">✕</button>`;
         html += `<div class="wcal-block-resize"></div>`;
@@ -6644,12 +6706,19 @@
 
     // === Interactions ===
 
-    // Click block → open task modal
+    // Click block → open task modal or event modal
     container.querySelectorAll('.wcal-block').forEach(el => {
       el.addEventListener('click', (e) => {
         if (e.target.closest('.wcal-block-remove') || e.target.closest('.wcal-block-resize') || e.target.closest('.wcal-block-resize-top')) return;
-        const task = tasks.find(t => t.id === el.dataset.taskId);
-        if (task) openModal(task);
+        const wpId = el.dataset.wpId;
+        const block = weekPlan.find(b => b.id === wpId);
+        if (!block) return;
+        if (block.taskId) {
+          const task = tasks.find(t => t.id === block.taskId);
+          if (task) openModal(task);
+        } else {
+          openEventModal(block, container, weekStart, compact);
+        }
       });
     });
 
@@ -6805,6 +6874,69 @@
       });
     });
 
+    // Click-and-drag on empty slot to create standalone event
+    container.querySelectorAll('.wcal-day-col').forEach(col => {
+      let dragState = null;
+      let previewEl = null;
+
+      col.addEventListener('mousedown', (e) => {
+        // Only start if clicking directly on the column or a slot (not on a block)
+        if (e.target.closest('.wcal-block')) return;
+        if (e.button !== 0) return;
+        const colRect = col.getBoundingClientRect();
+        const relY = e.clientY - colRect.top + col.scrollTop;
+        const startHour = snapHour(WCAL_START + relY / WCAL_PX_PER_HOUR);
+        dragState = { date: col.dataset.date, startHour, currentHour: startHour };
+
+        // Create preview block
+        previewEl = document.createElement('div');
+        previewEl.className = 'wcal-preview-block';
+        previewEl.style.top = ((startHour - WCAL_START) * WCAL_PX_PER_HOUR) + 'px';
+        previewEl.style.height = (WCAL_SNAP * WCAL_PX_PER_HOUR) + 'px';
+        col.appendChild(previewEl);
+
+        e.preventDefault();
+      });
+
+      col.addEventListener('mousemove', (e) => {
+        if (!dragState || !previewEl) return;
+        const colRect = col.getBoundingClientRect();
+        const relY = e.clientY - colRect.top + col.scrollTop;
+        const currentHour = snapHour(Math.max(WCAL_START, Math.min(WCAL_END, WCAL_START + relY / WCAL_PX_PER_HOUR)));
+        dragState.currentHour = currentHour;
+
+        const topHour = Math.min(dragState.startHour, currentHour);
+        const bottomHour = Math.max(dragState.startHour, currentHour);
+        const duration = Math.max(WCAL_SNAP, bottomHour - topHour);
+        previewEl.style.top = ((topHour - WCAL_START) * WCAL_PX_PER_HOUR) + 'px';
+        previewEl.style.height = (duration * WCAL_PX_PER_HOUR) + 'px';
+      });
+
+      col.addEventListener('mouseup', (e) => {
+        if (!dragState) return;
+        if (previewEl) { previewEl.remove(); previewEl = null; }
+
+        const topHour = Math.min(dragState.startHour, dragState.currentHour);
+        const bottomHour = Math.max(dragState.startHour, dragState.currentHour);
+        const duration = Math.max(WCAL_SNAP, bottomHour - topHour);
+        const evtDate = dragState.date;
+        dragState = null;
+
+        // Only open modal if dragged at least 15 min
+        if (duration >= WCAL_SNAP) {
+          openEventModal({
+            id: null, taskId: null, title: '', date: evtDate,
+            startHour: topHour, duration, space: '', starred: false, color: null
+          }, container, weekStart, compact);
+        }
+      });
+
+      col.addEventListener('mouseleave', () => {
+        if (previewEl) { previewEl.remove(); previewEl = null; }
+        dragState = null;
+      });
+    });
+
     // Scroll to 8am by default
     const scrollTarget = 8 * WCAL_PX_PER_HOUR; // 8am position
     const scrollParent = container.closest('.week-panel-body') || container.closest('.myday-wcal-wrap') || container;
@@ -6879,6 +7011,149 @@
 
     // Re-render when weekPlan changes externally
     window._refreshWeekPanel = () => { if (weekPanelOpen) renderPanel(); };
+  }
+
+  // ===== EVENT MODAL (Quick Create / Edit) =====
+  let _evtModalState = null; // { block, container, weekStart, compact, isNew }
+
+  function openEventModal(block, container, weekStart, compact) {
+    const isNew = !block.id;
+    _evtModalState = { block, container, weekStart, compact, isNew };
+
+    document.getElementById('evtModalHeading').textContent = isNew ? 'New Event' : 'Edit Event';
+    document.getElementById('evtTitle').value = block.title || '';
+    document.getElementById('evtModalTime').textContent = `${block.date} · ${hourToLabel(block.startHour)}–${hourToLabel(block.startHour + block.duration)}`;
+    document.getElementById('evtDelete').style.display = isNew ? 'none' : '';
+
+    // Star
+    const starBtn = document.getElementById('evtStar');
+    starBtn.classList.toggle('active', !!block.starred);
+    starBtn.onclick = () => { block.starred = !block.starred; starBtn.classList.toggle('active', block.starred); };
+
+    // Space dropdown
+    const spaceSelect = document.getElementById('evtSpace');
+    spaceSelect.innerHTML = '<option value="">No client</option>';
+    spaces.filter(s => s.id !== 'all').forEach(s => {
+      spaceSelect.innerHTML += `<option value="${s.id}" ${block.space === s.id ? 'selected' : ''}>${s.icon} ${s.name}</option>`;
+    });
+
+    // Colour swatches — theme-driven
+    const colorsEl = document.getElementById('evtColors');
+    const themeColors = [
+      { label: 'Default', value: null },
+      { label: 'Accent', value: 'var(--accent)' },
+      { label: 'Medium', value: 'var(--medium)' },
+      { label: 'Low', value: 'var(--low)' },
+      { label: 'Success', value: 'var(--success)' },
+      { label: 'Urgent', value: 'var(--urgent)' },
+      { label: 'High', value: 'var(--high)' }
+    ];
+    colorsEl.innerHTML = '';
+    themeColors.forEach(c => {
+      const swatch = document.createElement('div');
+      swatch.className = 'evt-color-swatch' + ((block.color || null) === c.value ? ' selected' : '');
+      if (c.value) {
+        swatch.style.background = c.value;
+      } else {
+        swatch.style.cssText = 'background:var(--surface);border:2px dashed var(--border);';
+      }
+      swatch.title = c.label;
+      swatch.addEventListener('click', () => {
+        block.color = c.value;
+        colorsEl.querySelectorAll('.evt-color-swatch').forEach(s => s.classList.remove('selected'));
+        swatch.classList.add('selected');
+      });
+      colorsEl.appendChild(swatch);
+    });
+
+    // Wire buttons
+    document.getElementById('evtSave').onclick = () => saveEvent();
+    document.getElementById('evtCancel').onclick = () => closeEventModal();
+    document.getElementById('evtDelete').onclick = () => {
+      if (block.id) {
+        weekPlan = weekPlan.filter(b => b.id !== block.id);
+        saveState();
+        renderWeekCalendar(container, weekStart, compact);
+      }
+      closeEventModal();
+    };
+    document.getElementById('evtConvert').onclick = () => convertEventToTask();
+
+    document.getElementById('evtModalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('evtTitle').focus(), 50);
+  }
+
+  function closeEventModal() {
+    document.getElementById('evtModalOverlay').classList.remove('open');
+    _evtModalState = null;
+  }
+
+  function saveEvent() {
+    if (!_evtModalState) return;
+    const { block, container, weekStart, compact, isNew } = _evtModalState;
+    block.title = document.getElementById('evtTitle').value.trim() || 'Untitled';
+    block.space = document.getElementById('evtSpace').value || '';
+
+    if (isNew) {
+      block.id = 'wp-' + Date.now();
+      weekPlan.push(block);
+    } else {
+      // Update existing
+      const existing = weekPlan.find(b => b.id === block.id);
+      if (existing) Object.assign(existing, { title: block.title, space: block.space, starred: block.starred, color: block.color });
+    }
+    saveState();
+    renderWeekCalendar(container, weekStart, compact);
+    closeEventModal();
+  }
+
+  function convertEventToTask() {
+    if (!_evtModalState) return;
+    const { block, container, weekStart, compact, isNew } = _evtModalState;
+
+    // Save event first if new
+    const title = document.getElementById('evtTitle').value.trim() || 'Untitled';
+    const space = document.getElementById('evtSpace').value || (currentSpace !== 'all' ? currentSpace : 'unassigned');
+    block.title = title;
+    block.space = space;
+    if (isNew) {
+      block.id = 'wp-' + Date.now();
+      weekPlan.push(block);
+    }
+
+    // Create a new task
+    const newTask = {
+      id: `WAVE-${Date.now()}`, title, priority: 'medium', status: 'To Do',
+      source: 'Manual', due: block.date || null, column: 'todo', space,
+      lastModifiedLocally: Date.now(), lastSyncedAt: null, subtasks: [],
+      myDay: !!block.starred, triaged: true, recurring: '', notes: ''
+    };
+    tasks.push(newTask);
+
+    // Link the block to this task
+    const wpEntry = weekPlan.find(b => b.id === block.id);
+    if (wpEntry) wpEntry.taskId = newTask.id;
+
+    saveState();
+    closeEventModal();
+
+    // Open task modal for full editing
+    // Store a reference so we can revert if user cancels
+    const revertTaskId = newTask.id;
+    const origCloseModal = window._origCloseModalForRevert;
+    openModal(newTask);
+
+    // Patch: if user discards (doesn't save), remove the task and unlink block
+    const _origDiscard = document.getElementById('unsavedDiscardBtn').onclick;
+    document.getElementById('unsavedDiscardBtn').addEventListener('click', function revertHandler() {
+      // Remove task, unlink block
+      const idx = tasks.findIndex(t => t.id === revertTaskId);
+      if (idx !== -1) tasks.splice(idx, 1);
+      if (wpEntry) { wpEntry.taskId = null; wpEntry.title = title; }
+      saveState();
+      renderWeekCalendar(container, weekStart, compact);
+      document.getElementById('unsavedDiscardBtn').removeEventListener('click', revertHandler);
+    }, { once: true });
   }
 
   // ===== MY DAY VIEW =====
