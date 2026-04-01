@@ -2401,7 +2401,8 @@
             <div class="link-row-control" id="invLinkControl"></div>
           </div>
           <div class="link-row" id="noteLinkRow">
-            <span class="link-row-label">Note</span>
+            <span class="link-row-label">Notes</span>
+            <div id="noteLinkTiles"></div>
             <div class="link-row-control" id="noteLinkControl"></div>
           </div>
         </div>
@@ -8236,18 +8237,99 @@
       onClear:  ()  => { delete task.linkedInvoiceId; markDirty(); },
       onNav:    id  => { const inv = invoices.find(i => i.id === id); if (inv) { closeModal(); activeInvoiceId = inv.id; invoiceViewMode = 'editor'; switchView('invoices'); } }
     });
+    // Migrate singular linkedNoteId to array if needed
+    if (task.linkedNoteId && !task.linkedNoteIds) {
+      task.linkedNoteIds = [task.linkedNoteId];
+      delete task.linkedNoteId;
+    }
+    if (!task.linkedNoteIds) task.linkedNoteIds = [];
+
+    renderNoteLinkTiles(task);
+    renderNoteLinkSearch(task);
+  }
+
+  function renderNoteLinkTiles(task) {
+    const container = document.getElementById('noteLinkTiles');
+    if (!container) return;
+    if (!task.linkedNoteIds || task.linkedNoteIds.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = task.linkedNoteIds.map((noteId, i) => {
+      const note = meetingNotes.find(n => n.id === noteId);
+      const name = note ? (note.name || '(Untitled note)') : noteId;
+      const date = note ? (note.date || '') : '';
+      const spaceName = note ? (spaces.find(s => s.id === note.space)?.name || '') : '';
+      return `<div class="mn-task-tile" data-note-id="${noteId}" style="cursor:pointer;margin-bottom:6px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);display:flex;align-items:center;gap:8px;transition:all 0.15s;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✎ ${name.replace(/</g,'&lt;')}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${[spaceName, date].filter(Boolean).join(' · ')}</div>
+        </div>
+        <button class="note-tile-remove" data-idx="${i}" title="Remove link" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 4px;">×</button>
+      </div>`;
+    }).join('');
+
+    // Click tile → open note, return to task on close
+    container.querySelectorAll('.mn-task-tile[data-note-id]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.note-tile-remove')) return;
+        const noteId = el.dataset.noteId;
+        openNoteFromTask(noteId);
+      });
+    });
+    // Remove link
+    container.querySelectorAll('.note-tile-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.idx);
+        task.linkedNoteIds.splice(idx, 1);
+        markDirty();
+        renderNoteLinkTiles(task);
+      });
+    });
+  }
+
+  function renderNoteLinkSearch(task) {
     renderLinkControl({
       controlId: 'noteLinkControl',
-      linkedId: task.linkedNoteId || null,
-      getItems: () => meetingNotes.map(n => ({
-        id: n.id,
-        main: n.name || '(Untitled note)',
-        sub: (n.date || '') + (n.space ? ' · ' + n.space : '')
-      })),
-      onSelect: id => { task.linkedNoteId = id; markDirty(); },
-      onClear:  ()  => { delete task.linkedNoteId; markDirty(); },
-      onNav:    id  => { const n = meetingNotes.find(m => m.id === id); if (n) { closeModal(); activeMeetingNoteId = n.id; switchView('notes'); } }
+      linkedId: null, // Always show search (tiles handle the display)
+      getItems: () => meetingNotes
+        .filter(n => !(task.linkedNoteIds || []).includes(n.id)) // Exclude already linked
+        .map(n => ({
+          id: n.id,
+          main: n.name || '(Untitled note)',
+          sub: (n.date || '') + (n.space ? ' · ' + n.space : '')
+        })),
+      onSelect: id => {
+        if (!task.linkedNoteIds) task.linkedNoteIds = [];
+        if (!task.linkedNoteIds.includes(id)) task.linkedNoteIds.push(id);
+        markDirty();
+        renderNoteLinkTiles(task);
+        renderNoteLinkSearch(task); // Re-render search to exclude newly linked
+      },
+      onClear: () => {},
+      onNav: () => {}
     });
+  }
+
+  function openNoteFromTask(noteId) {
+    const taskBeingEdited = editingTask;
+    // Save current task state
+    saveTask();
+    // Open the meeting note
+    openMnModal(noteId);
+    // When note modal closes, return to the task
+    const mnOverlay = document.getElementById('mnModalOverlay');
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === 'class' && !mnOverlay.classList.contains('open')) {
+          observer.disconnect();
+          setTimeout(() => { if (taskBeingEdited) openModal(taskBeingEdited); }, 100);
+          break;
+        }
+      }
+    });
+    observer.observe(mnOverlay, { attributes: true });
   }
 
   function renderLinkControl({ controlId, linkedId, getItems, onSelect, onClear, onNav }) {
@@ -8376,7 +8458,8 @@
     editingTask.recurring = document.getElementById('modalRecurring').value;
     // linked invoice / note are mutated directly by renderLinkControl; just ensure they persist
     if (!editingTask.linkedInvoiceId) delete editingTask.linkedInvoiceId;
-    if (!editingTask.linkedNoteId) delete editingTask.linkedNoteId;
+    if (!editingTask.linkedNoteIds || editingTask.linkedNoteIds.length === 0) delete editingTask.linkedNoteIds;
+    if (editingTask.linkedNoteId) delete editingTask.linkedNoteId; // clean up old singular field
     editingTask.lastModifiedLocally = Date.now();
     clearDirty();
     closeModal();
@@ -9376,6 +9459,25 @@
       meetingNotes.push({
         id: 'mn-' + Date.now(), name, space, date, attendees, agenda, notes, tasks: noteTasks,
         tags, pinned, createdAt: Date.now(), updatedAt: Date.now()
+      });
+    }
+
+    // Auto-link Wave tasks back to this meeting note
+    const savedNoteId = editingMeetingNoteId || meetingNotes[meetingNotes.length - 1]?.id;
+    if (savedNoteId) {
+      noteTasks.forEach(nt => {
+        if (!nt.waveTaskId) return;
+        const waveTask = tasks.find(t => t.id === nt.waveTaskId);
+        if (!waveTask) return;
+        // Migrate singular to array if needed
+        if (waveTask.linkedNoteId && !waveTask.linkedNoteIds) {
+          waveTask.linkedNoteIds = [waveTask.linkedNoteId];
+          delete waveTask.linkedNoteId;
+        }
+        if (!waveTask.linkedNoteIds) waveTask.linkedNoteIds = [];
+        if (!waveTask.linkedNoteIds.includes(savedNoteId)) {
+          waveTask.linkedNoteIds.push(savedNoteId);
+        }
       });
     }
 
