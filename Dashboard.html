@@ -9040,9 +9040,9 @@
       case 'checklist': {
         const sel = window.getSelection();
         const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
-        const label = (range && !range.collapsed) ? range.toString() : 'To-do item';
+        const label = (range && !range.collapsed) ? range.toString() : '';
         document.execCommand('insertHTML', false,
-          `<div style="display:flex;align-items:baseline;gap:6px;"><input type="checkbox" style="margin-top:3px;accent-color:var(--accent);"> <span>${label}</span></div>`);
+          `<label style="display:flex;align-items:center;gap:6px;margin:2px 0;cursor:pointer;"><input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;"> <span>${label}</span></label>`);
         break;
       }
       case 'image': {
