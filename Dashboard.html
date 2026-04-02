@@ -1948,14 +1948,14 @@
     .wcal-block.dragging { opacity: 0.6; cursor: grabbing; z-index: 10; }
     .wcal-block-title { white-space: normal; overflow: hidden; line-height: 1.3; word-break: break-word; flex: 1; }
     .wcal-block-time { font-size: 9px; opacity: 0.7; }
-    .wcal-block-remove, .wcal-block-export { position: absolute; top: 2px; background: none; border: none; font-size: 10px; cursor: pointer; opacity: 0; color: inherit; padding: 0 2px; }
-    .wcal-block-remove { right: 4px; }
+    .wcal-block-remove, .wcal-block-export { position: absolute; top: 2px; background: rgba(255,255,255,0.6); border: none; font-size: 9px; cursor: pointer; opacity: 0; color: inherit; padding: 1px 4px; border-radius: 8px; line-height: 1.2; }
+    .wcal-block-remove { right: 2px; }
     .wcal-block-export { right: 18px; }
-    .wcal-block:hover .wcal-block-remove, .wcal-block:hover .wcal-block-export { opacity: 0.6; }
-    .wcal-block-remove:hover, .wcal-block-export:hover { opacity: 1 !important; }
-    .wcal-day-export { font-size: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 1px 3px; opacity: 0; transition: opacity 0.15s; }
-    .wcal-header-day:hover .wcal-day-export { opacity: 0.7; }
-    .wcal-day-export:hover { opacity: 1 !important; color: var(--accent); }
+    .wcal-block:hover .wcal-block-remove, .wcal-block:hover .wcal-block-export { opacity: 0.8; }
+    .wcal-block-remove:hover, .wcal-block-export:hover { opacity: 1 !important; background: rgba(255,255,255,0.9); }
+    .wcal-day-export { font-size: 9px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; padding: 2px 6px; border-radius: 10px; opacity: 0; transition: all 0.15s; margin-top: 2px; }
+    .wcal-header-day:hover .wcal-day-export { opacity: 1; }
+    .wcal-day-export:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
     .wcal-block-resize-top { position: absolute; top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
     .wcal-block-resize-top::after { content: ''; display: block; width: 20px; height: 2px; background: rgba(0,0,0,0.2); border-radius: 1px; margin: 1px auto 0; }
     .wcal-block-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 3; }
@@ -2685,7 +2685,7 @@
         <button id="weekPanelPrev">←</button>
         <button id="weekPanelToday">Today</button>
         <button id="weekPanelNext">→</button>
-        <button id="weekPanelExport" title="Export week to iCal" style="margin-left:4px;">↓ iCal</button>
+        <button id="weekPanelExport" title="Export week to iCal" style="margin-left:4px;font-size:10px;font-weight:600;">↓ Download Week</button>
       </div>
       <button class="week-panel-close" id="weekPanelClose">✕</button>
     </div>
@@ -6706,7 +6706,7 @@
     days.forEach(day => {
       const dayName = day.date.toLocaleDateString('en-GB', { weekday: 'short' });
       const dayNum = day.date.getDate();
-      html += `<div class="wcal-header-day${day.isToday ? ' today' : ''}" data-date="${day.str}"><div class="wcal-header-day-name">${dayName}</div><div class="wcal-header-day-num">${dayNum}</div><button class="wcal-day-export" data-date="${day.str}" title="Export day to iCal">↓</button></div>`;
+      html += `<div class="wcal-header-day${day.isToday ? ' today' : ''}" data-date="${day.str}"><div class="wcal-header-day-name">${dayName}</div><div class="wcal-header-day-num">${dayNum}</div><button class="wcal-day-export" data-date="${day.str}" title="Export day to iCal">↓ Download</button></div>`;
     });
     html += '</div>';
 
@@ -6721,8 +6721,8 @@
       html += `<div class="wcal-day-col${day.isToday ? ' today' : ''}" data-date="${day.str}">`;
       // 30-min slots for drop targets
       for (let h = WCAL_START; h < WCAL_END; h += 0.5) {
-        const isHourStart = h === Math.floor(h);
-        html += `<div class="wcal-slot${isHourStart ? ' hour-start' : ''}" data-hour="${h}"></div>`;
+        const isHourEnd = h !== Math.floor(h); // :30 slot — its bottom edge is on the hour
+        html += `<div class="wcal-slot${isHourEnd ? ' hour-start' : ''}" data-hour="${h}"></div>`;
       }
       // Current time indicator on today's column
       if (day.isToday) {
@@ -7392,7 +7392,7 @@
           <button id="mdWcalPrev">←</button>
           <button id="mdWcalToday">Today</button>
           <button id="mdWcalNext">→</button>
-          <button id="mdWcalExport" title="Export week to iCal">↓</button>
+          <button id="mdWcalExport" title="Export week to iCal" style="font-size:10px;font-weight:600;">↓ Download Week</button>
         </div>
       </div>
       <div class="myday-wcal-wrap" id="mdWcalContainer"></div>
@@ -7519,23 +7519,41 @@
     const mdWcalContainer = document.getElementById('mdWcalContainer');
     if (mdWcalContainer) {
       renderWeekCalendar(mdWcalContainer, _mydayWeekStartDate, true);
-      // Scroll inside calendar shifts days: any scroll direction works
-      let _mdScrollAccum = 0;
-      const SCROLL_THRESHOLD = 60;
-      mdWcalContainer.addEventListener('wheel', (e) => {
-        // Use whichever axis has more movement
-        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-        if (delta === 0) return;
-        e.preventDefault();
-        e.stopPropagation();
-        _mdScrollAccum += delta;
-        if (Math.abs(_mdScrollAccum) >= SCROLL_THRESHOLD) {
-          const direction = _mdScrollAccum > 0 ? 1 : -1;
-          _mdScrollAccum = 0;
-          _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + direction);
-          renderMyDay();
-        }
-      }, { passive: false });
+      // Horizontal scroll/swipe inside calendar header shifts days
+      // Attach to the header row (not the scrollable body) to avoid conflicting with vertical scroll
+      const wcalHeader = mdWcalContainer.querySelector('.wcal-header');
+      if (wcalHeader) {
+        let _mdScrollAccum = 0;
+        const SCROLL_THRESHOLD = 40;
+        wcalHeader.addEventListener('wheel', (e) => {
+          const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+          if (delta === 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          _mdScrollAccum += delta;
+          if (Math.abs(_mdScrollAccum) >= SCROLL_THRESHOLD) {
+            const direction = _mdScrollAccum > 0 ? 1 : -1;
+            _mdScrollAccum = 0;
+            _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + direction);
+            renderMyDay();
+          }
+        }, { passive: false });
+
+        // Touch swipe on the whole calendar
+        let _touchStartX = null;
+        mdWcalContainer.addEventListener('touchstart', (e) => {
+          _touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        mdWcalContainer.addEventListener('touchend', (e) => {
+          if (_touchStartX === null) return;
+          const dx = e.changedTouches[0].clientX - _touchStartX;
+          _touchStartX = null;
+          if (Math.abs(dx) > 50) {
+            _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + (dx < 0 ? 1 : -1));
+            renderMyDay();
+          }
+        }, { passive: true });
+      }
     }
     const mdPrev = document.getElementById('mdWcalPrev');
     const mdNext = document.getElementById('mdWcalNext');
