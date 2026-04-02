@@ -182,6 +182,9 @@
       color: var(--text);
       transition: background 0.3s ease, color 0.3s ease;
       overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
     body::before {
       content: '';
@@ -195,7 +198,8 @@
       background-size: 256px 256px;
     }
 
-    .app-container { display: flex; height: 100vh; gap: 0; }
+    html { height: 100%; }
+    .app-container { display: flex; flex: 1; min-height: 0; gap: 0; }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -493,7 +497,7 @@
 
     /* Main content */
     .main-content { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-x: auto; overflow-y: auto; transition: margin-right 0.3s ease; }
-    .wave-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: auto; }
+    .wave-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--bg); z-index: 100; }
     .wave-footer-left { font-style: italic; letter-spacing: 0.3px; }
     .wave-footer-center { text-align: center; }
     .wave-footer-right { text-align: right; font-size: 10px; opacity: 0.6; }
@@ -2250,14 +2254,14 @@
     <div id="contentView" style="display: none;" class="content-container"></div>
     <div id="invoicesView" style="display: none; flex-shrink: 0;" class="invoices-container"></div>
 
-    <!-- App Footer -->
-    <footer class="wave-footer">
-      <span class="wave-footer-left">Catch the Wave</span>
-      <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-      <span class="wave-footer-right">Version 1.31</span>
-    </footer>
   </div>
 </div>
+<!-- App Footer — full width, outside app-container -->
+<footer class="wave-footer" id="waveFooter">
+  <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
+  <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
+  <span class="wave-footer-right">Version 1.32</span>
+</footer>
 
 <!-- Tracker Column Manager Modal -->
 <div class="tracker-modal-overlay" id="trackerColModal">
@@ -4067,6 +4071,7 @@
     document.getElementById('zenNext').addEventListener('click', zenNext);
     document.getElementById('batchToggleBtn').addEventListener('click', toggleBatchMode);
     document.getElementById('exportBtn').addEventListener('click', exportJSON);
+    document.getElementById('waveFooterHome')?.addEventListener('click', () => switchView('myday'));
 
     // Batch bar buttons
     document.getElementById('batchMoveDone').addEventListener('click', () => batchAction('done'));
