@@ -2254,7 +2254,7 @@
     <footer class="wave-footer">
       <span class="wave-footer-left">Catch the Wave</span>
       <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-      <span class="wave-footer-right">Version 1.29</span>
+      <span class="wave-footer-right">Version 1.30</span>
     </footer>
   </div>
 </div>
@@ -6519,31 +6519,33 @@
         return (aSpace?.name || a).localeCompare(bSpace?.name || b);
       });
 
+      // Single table with fixed column widths for alignment
+      html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
+      html += '<colgroup><col style="width:18%"><col style="width:26%"><col style="width:18%"><col style="width:18%"><col style="width:20%"></colgroup>';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);">';
+      html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Name</th>';
+      html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Email</th>';
+      html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Role</th>';
+      html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Company</th>';
+      html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Tags</th>';
+      html += '</tr></thead><tbody>';
+
       groupOrder.forEach(sid => {
         const groupContacts = grouped[sid];
         const space = spaces.find(s => s.id === sid);
         const groupName = space ? `${space.icon} ${space.name}` : (sid === 'other' ? 'Other' : sid);
-        html += `<div style="margin-bottom:24px;">`;
-        html += `<div style="font-size:12px;font-weight:600;color:var(--text-muted);padding:6px 0 8px;border-left:3px solid var(--accent);padding-left:10px;">${groupName} <span style="font-weight:400;">(${groupContacts.length})</span></div>`;
-        html += '<table style="width:100%;border-collapse:collapse;">';
-        html += '<thead><tr style="border-bottom:1px solid var(--border);">';
-        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Name</th>';
-        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Email</th>';
-        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Role</th>';
-        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Company</th>';
-        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Tags</th>';
-        html += '</tr></thead><tbody>';
+        html += `<tr><td colspan="5" style="padding:14px 12px 6px;border-left:3px solid var(--accent);font-size:12px;font-weight:600;color:var(--text-muted);">${groupName} <span style="font-weight:400;">(${groupContacts.length})</span></td></tr>`;
         groupContacts.forEach(c => {
           html += `<tr class="contact-row" data-contact-id="${c.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;">
-            <td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);">${(c.name || '').replace(/</g,'&lt;')}</td>
-            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.email || '').replace(/</g,'&lt;')}</td>
-            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.role || '—').replace(/</g,'&lt;')}</td>
-            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.company || '—').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(c.name || '').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(c.email || '').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(c.role || '—').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(c.company || '—').replace(/</g,'&lt;')}</td>
             <td style="padding:8px 12px;">${c.tags.map(t => '<span style="font-size:10px;padding:2px 6px;background:var(--accent-light);color:var(--accent);border-radius:10px;margin-right:3px;">' + t + '</span>').join('')}</td>
           </tr>`;
         });
-        html += '</tbody></table></div>';
       });
+      html += '</tbody></table>';
     }
     html += '</div>';
     contactsView.innerHTML = html;
