@@ -7487,16 +7487,21 @@
     const mdWcalContainer = document.getElementById('mdWcalContainer');
     if (mdWcalContainer) {
       renderWeekCalendar(mdWcalContainer, _mydayWeekStartDate, true);
-      // Horizontal swipe: shift by 1 day per scroll
-      let _mdScrollCooldown = false;
+      // Scroll inside calendar shifts days: any scroll direction works
+      let _mdScrollAccum = 0;
+      const SCROLL_THRESHOLD = 60;
       mdWcalContainer.addEventListener('wheel', (e) => {
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 20) {
-          if (_mdScrollCooldown) return;
-          _mdScrollCooldown = true;
-          e.preventDefault();
-          _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + (e.deltaX > 0 ? 1 : -1));
+        // Use whichever axis has more movement
+        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (delta === 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        _mdScrollAccum += delta;
+        if (Math.abs(_mdScrollAccum) >= SCROLL_THRESHOLD) {
+          const direction = _mdScrollAccum > 0 ? 1 : -1;
+          _mdScrollAccum = 0;
+          _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + direction);
           renderMyDay();
-          setTimeout(() => { _mdScrollCooldown = false; }, 200);
         }
       }, { passive: false });
     }
