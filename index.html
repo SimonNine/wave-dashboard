@@ -493,12 +493,13 @@
 
     /* Main content */
     .main-content { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-x: auto; overflow-y: auto; transition: margin-right 0.3s ease; }
-    .wave-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: auto; }
-    .wave-footer-tagline { font-style: italic; letter-spacing: 0.3px; }
-    .wave-footer-sep { opacity: 0.4; }
+    .wave-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: auto; }
+    .wave-footer-left { font-style: italic; letter-spacing: 0.3px; }
+    .wave-footer-center { text-align: center; }
+    .wave-footer-right { text-align: right; font-size: 10px; opacity: 0.6; }
     .wave-footer-link { color: var(--accent); text-decoration: none; font-weight: 500; transition: opacity 0.15s; }
     .wave-footer-link:hover { opacity: 0.8; text-decoration: underline; }
-    .wave-footer-version { font-weight: 600; color: var(--text-muted); opacity: 0.6; font-size: 10px; }
+    @media (max-width: 600px) { .wave-footer { flex-direction: column; gap: 4px; text-align: center; padding: 12px 16px; } .wave-footer-left, .wave-footer-center, .wave-footer-right { text-align: center; } }
     .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
     .header-left { display: flex; flex-direction: column; gap: 4px; }
     .header-left h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
@@ -2251,11 +2252,9 @@
 
     <!-- App Footer -->
     <footer class="wave-footer">
-      <span class="wave-footer-tagline">Catch the Wave</span>
-      <span class="wave-footer-sep">·</span>
-      <span>Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-      <span class="wave-footer-sep">·</span>
-      <span class="wave-footer-version">v1.28</span>
+      <span class="wave-footer-left">Catch the Wave</span>
+      <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
+      <span class="wave-footer-right">Version 1.29</span>
     </footer>
   </div>
 </div>
@@ -6424,8 +6423,9 @@
   }
 
   // ===== CONTACTS / RELATIONSHIP INTELLIGENCE =====
-  let contactsViewMode = 'grid';
+  let contactsViewMode = 'grid'; // 'grid' | 'detail' | 'clients' | 'client-detail'
   let activeContactId = null;
+  let activeClientSpaceId = null;
 
   function getContactActivity(contact) {
     const activities = [];
@@ -6455,46 +6455,124 @@
 
   function renderContacts() {
     if (contactsViewMode === 'detail' && activeContactId) { renderContactDetail(); return; }
+    if (contactsViewMode === 'client-detail' && activeClientSpaceId) { renderClientHub(); return; }
+
+    const isClientsTab = contactsViewMode === 'clients';
     let html = '<div style="max-width:none;">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;"><div><h2 style="font-size:22px;font-weight:700;margin:0;">Contacts</h2><p style="font-size:13px;color:var(--text-secondary);margin:4px 0 0;">' + contacts.length + ' people</p></div>';
-    html += '<div style="display:flex;gap:8px;"><input type="text" id="contactSearch" placeholder="Search contacts..." style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;width:200px;">';
-    html += '<select id="contactSpaceFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;"><option value="all">All Spaces</option>' + spaces.filter(s => s.id !== 'all').map(s => '<option value="' + s.id + '">' + s.icon + ' ' + s.name + '</option>').join('') + '</select>';
-    html += '<button id="addContactBtn" style="padding:8px 16px;background:var(--accent);color:white;border:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600;cursor:pointer;">+ New Contact</button></div></div>';
-    html += '<div class="contacts-list" id="contactsGrid">';
-    contacts.forEach(c => {
-      const initials = (c.name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      const space = spaces.find(s => s.id === c.space);
-      const activity = getContactActivity(c);
-      const lastAct = activity[0];
-      const avatarContent = c.imageUrl ? '<img src="' + c.imageUrl + '" alt="' + c.name + '">' : initials;
-      html += '<div class="contact-card" data-contact-id="' + c.id + '">';
-      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><div class="contact-avatar">' + avatarContent + '</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;color:var(--text);">' + c.name + '</div><div style="font-size:12px;color:var(--text-secondary);">' + (c.company || c.email || '') + '</div></div></div>';
-      if (c.role) html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">' + c.role + '</div>';
-      html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">' + c.tags.map(t => '<span class="contact-tag">' + t + '</span>').join('');
-      if (space) html += '<span class="contact-tag" style="background:var(--surface-hover);color:var(--text-secondary);">' + space.icon + ' ' + space.name + '</span>';
-      html += '</div>';
-      html += '<div style="font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:8px;">' + activity.length + ' activities' + (lastAct ? ' · Last: ' + lastAct.title.slice(0, 30) + (lastAct.title.length > 30 ? '...' : '') : '') + '</div>';
-      html += '</div>';
-    });
-    html += '</div></div>';
+
+    // Sub-tabs: People | Clients
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;gap:4px;">
+        <button class="ppl-subtab ${!isClientsTab ? 'active' : ''}" data-tab="people" style="padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:${!isClientsTab ? 'var(--accent-light)' : 'transparent'};color:${!isClientsTab ? 'var(--accent)' : 'var(--text-muted)'};cursor:pointer;font-size:12px;font-weight:500;">People</button>
+        <button class="ppl-subtab ${isClientsTab ? 'active' : ''}" data-tab="clients" style="padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:${isClientsTab ? 'var(--accent-light)' : 'transparent'};color:${isClientsTab ? 'var(--accent)' : 'var(--text-muted)'};cursor:pointer;font-size:12px;font-weight:500;">Clients</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="contactSearch" placeholder="Search..." style="padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:12px;width:180px;">
+        ${!isClientsTab ? '<button id="addContactBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:var(--radius-xs);font-size:12px;font-weight:600;cursor:pointer;">+ Contact</button>' : ''}
+      </div>
+    </div>`;
+
+    if (isClientsTab) {
+      // Clients tabular view
+      const clientSpaces = spaces.filter(s => s.id !== 'all' && s.id !== 'unassigned');
+      html += '<table style="width:100%;border-collapse:collapse;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);">';
+      html += '<th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Client</th>';
+      html += '<th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Contacts</th>';
+      html += '<th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Tasks</th>';
+      html += '<th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Notes</th>';
+      html += '<th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Invoices</th>';
+      html += '</tr></thead><tbody>';
+      clientSpaces.forEach(s => {
+        const cCount = contacts.filter(c => c.space === s.id).length;
+        const tCount = tasks.filter(t => t.space === s.id).length;
+        const nCount = meetingNotes.filter(n => n.space === s.id).length;
+        const iCount = invoices.filter(inv => {
+          const cName = (inv.client || '').toLowerCase();
+          return cName.includes(s.name.toLowerCase());
+        }).length;
+        html += `<tr class="client-row" data-space-id="${s.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;">
+          <td style="padding:10px 12px;font-size:13px;font-weight:500;color:var(--text);">${s.icon} ${s.name}</td>
+          <td style="padding:10px 12px;font-size:12px;color:var(--text-secondary);">${cCount}</td>
+          <td style="padding:10px 12px;font-size:12px;color:var(--text-secondary);">${tCount}</td>
+          <td style="padding:10px 12px;font-size:12px;color:var(--text-secondary);">${nCount}</td>
+          <td style="padding:10px 12px;font-size:12px;color:var(--text-secondary);">${iCount}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+    } else {
+      // People tabular view grouped by client/space
+      const grouped = {};
+      contacts.forEach(c => {
+        const sid = c.space || c.company || 'other';
+        if (!grouped[sid]) grouped[sid] = [];
+        grouped[sid].push(c);
+      });
+      // Sort groups: spaces first, then company-only, then 'other'
+      const groupOrder = Object.keys(grouped).sort((a, b) => {
+        const aSpace = spaces.find(s => s.id === a);
+        const bSpace = spaces.find(s => s.id === b);
+        if (aSpace && !bSpace) return -1;
+        if (!aSpace && bSpace) return 1;
+        if (a === 'other') return 1;
+        if (b === 'other') return -1;
+        return (aSpace?.name || a).localeCompare(bSpace?.name || b);
+      });
+
+      groupOrder.forEach(sid => {
+        const groupContacts = grouped[sid];
+        const space = spaces.find(s => s.id === sid);
+        const groupName = space ? `${space.icon} ${space.name}` : (sid === 'other' ? 'Other' : sid);
+        html += `<div style="margin-bottom:24px;">`;
+        html += `<div style="font-size:12px;font-weight:600;color:var(--text-muted);padding:6px 0 8px;border-left:3px solid var(--accent);padding-left:10px;">${groupName} <span style="font-weight:400;">(${groupContacts.length})</span></div>`;
+        html += '<table style="width:100%;border-collapse:collapse;">';
+        html += '<thead><tr style="border-bottom:1px solid var(--border);">';
+        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Name</th>';
+        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Email</th>';
+        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Role</th>';
+        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Company</th>';
+        html += '<th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Tags</th>';
+        html += '</tr></thead><tbody>';
+        groupContacts.forEach(c => {
+          html += `<tr class="contact-row" data-contact-id="${c.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;">
+            <td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);">${(c.name || '').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.email || '').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.role || '—').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.company || '—').replace(/</g,'&lt;')}</td>
+            <td style="padding:8px 12px;">${c.tags.map(t => '<span style="font-size:10px;padding:2px 6px;background:var(--accent-light);color:var(--accent);border-radius:10px;margin-right:3px;">' + t + '</span>').join('')}</td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+      });
+    }
+    html += '</div>';
     contactsView.innerHTML = html;
-    contactsView.querySelectorAll('.contact-card').forEach(el => {
-      el.addEventListener('click', () => { activeContactId = el.dataset.contactId; contactsViewMode = 'detail'; renderContacts(); });
+
+    // Sub-tab switching
+    contactsView.querySelectorAll('.ppl-subtab').forEach(btn => {
+      btn.addEventListener('click', () => { contactsViewMode = btn.dataset.tab === 'clients' ? 'clients' : 'grid'; renderContacts(); });
     });
+    // Contact row click
+    contactsView.querySelectorAll('.contact-row').forEach(el => {
+      el.addEventListener('click', () => { activeContactId = el.dataset.contactId; contactsViewMode = 'detail'; renderContacts(); });
+      el.addEventListener('mouseenter', () => { el.style.background = 'var(--surface-hover)'; });
+      el.addEventListener('mouseleave', () => { el.style.background = ''; });
+    });
+    // Client row click
+    contactsView.querySelectorAll('.client-row').forEach(el => {
+      el.addEventListener('click', () => { activeClientSpaceId = el.dataset.spaceId; contactsViewMode = 'client-detail'; renderContacts(); });
+      el.addEventListener('mouseenter', () => { el.style.background = 'var(--surface-hover)'; });
+      el.addEventListener('mouseleave', () => { el.style.background = ''; });
+    });
+    // Search
     const searchEl = contactsView.querySelector('#contactSearch');
     if (searchEl) searchEl.addEventListener('input', () => {
       const q = searchEl.value.toLowerCase();
-      const filterVal = contactsView.querySelector('#contactSpaceFilter')?.value || 'all';
-      contactsView.querySelectorAll('.contact-card').forEach(el => {
-        const c = contacts.find(ct => ct.id === el.dataset.contactId);
-        if (!c) return;
-        const matchesSearch = !q || c.name.toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q) || (c.company || '').toLowerCase().includes(q);
-        const matchesSpace = filterVal === 'all' || c.space === filterVal;
-        el.style.display = (matchesSearch && matchesSpace) ? '' : 'none';
+      contactsView.querySelectorAll('.contact-row, .client-row').forEach(el => {
+        el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
       });
     });
-    const spaceFilter = contactsView.querySelector('#contactSpaceFilter');
-    if (spaceFilter) spaceFilter.addEventListener('change', () => { if (searchEl) searchEl.dispatchEvent(new Event('input')); });
+    // Add contact
     const addBtn = contactsView.querySelector('#addContactBtn');
     if (addBtn) addBtn.addEventListener('click', () => {
       const nc = { id: 'contact-' + Date.now(), name: 'New Contact', email: '', company: '', role: '', phone: '', notes: '', imageUrl: '', space: currentSpace !== 'all' ? currentSpace : '', tags: [], createdAt: Date.now(), updatedAt: Date.now() };
@@ -6609,6 +6687,149 @@
         if (type === 'meeting') { switchView('meetingnotes'); setTimeout(() => openMnModal(id), 100); }
         else { const task = tasks.find(t => t.id === id); if (task) openModal(task); }
       });
+    });
+  }
+
+  // ===== CLIENT HUB =====
+  function renderClientHub() {
+    const space = spaces.find(s => s.id === activeClientSpaceId);
+    if (!space) { contactsViewMode = 'clients'; renderContacts(); return; }
+
+    const clientContacts = contacts.filter(c => c.space === space.id);
+    const clientTasks = tasks.filter(t => t.space === space.id);
+    const clientNotes = meetingNotes.filter(n => n.space === space.id).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const clientInvoices = invoices.filter(inv => (inv.client || '').toLowerCase().includes(space.name.toLowerCase()));
+    const clientEvents = weekPlan.filter(b => b.space === space.id || (b.taskId && clientTasks.some(t => t.id === b.taskId)));
+
+    let html = '<div style="max-width:1000px;margin:0 auto;">';
+    html += `<button id="clientHubBack" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:13px;margin-bottom:16px;padding:0;">← Back to Clients</button>`;
+
+    // Header
+    html += `<div style="margin-bottom:28px;">
+      <h2 style="font-size:24px;font-weight:600;margin:0;">${space.icon} ${space.name}</h2>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <span class="myday-stat">${clientContacts.length} contacts</span>
+        <span class="myday-stat">${clientTasks.length} tasks</span>
+        <span class="myday-stat">${clientNotes.length} notes</span>
+        <span class="myday-stat">${clientInvoices.length} invoices</span>
+        <span class="myday-stat">${clientEvents.length} calendar events</span>
+      </div>
+    </div>`;
+
+    // Helper for collapsible sections
+    function section(id, title, count, content) {
+      return `<div style="margin-bottom:24px;">
+        <div class="client-hub-section-header" data-section="${id}" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:10px;">
+          <span class="client-hub-arrow" style="font-size:10px;color:var(--text-muted);transition:transform 0.15s;">▼</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text);">${title}</span>
+          <span style="font-size:11px;color:var(--text-muted);">${count}</span>
+        </div>
+        <div class="client-hub-section-body" data-section="${id}">${content}</div>
+      </div>`;
+    }
+
+    // CONTACTS
+    let contactsHtml = '';
+    if (clientContacts.length === 0) { contactsHtml = '<div style="padding:16px;color:var(--text-muted);font-size:12px;">No contacts linked to this client.</div>'; }
+    else {
+      contactsHtml += '<table style="width:100%;border-collapse:collapse;">';
+      contactsHtml += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Name</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Email</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Role</th></tr></thead><tbody>';
+      clientContacts.forEach(c => {
+        contactsHtml += `<tr class="hub-contact-row" data-id="${c.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;"><td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);">${(c.name||'').replace(/</g,'&lt;')}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.email||'').replace(/</g,'&lt;')}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${(c.role||'—').replace(/</g,'&lt;')}</td></tr>`;
+      });
+      contactsHtml += '</tbody></table>';
+    }
+    html += section('contacts', 'Contacts', clientContacts.length, contactsHtml);
+
+    // TASKS
+    let tasksHtml = '';
+    if (clientTasks.length === 0) { tasksHtml = '<div style="padding:16px;color:var(--text-muted);font-size:12px;">No tasks for this client.</div>'; }
+    else {
+      tasksHtml += '<table style="width:100%;border-collapse:collapse;">';
+      tasksHtml += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Task</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Status</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Priority</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Due</th></tr></thead><tbody>';
+      clientTasks.forEach(t => {
+        const isDone = t.column === 'done';
+        tasksHtml += `<tr class="hub-task-row" data-id="${t.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;${isDone ? 'opacity:0.5;' : ''}"><td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);${isDone ? 'text-decoration:line-through;' : ''}">${(t.title||'').replace(/</g,'&lt;')}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${t.status||''}</td><td style="padding:8px 12px;"><span class="priority-badge priority-${t.priority}" style="font-size:10px;">${t.priority}</span></td><td style="padding:8px 12px;font-size:12px;color:var(--text-muted);">${t.due||'—'}</td></tr>`;
+      });
+      tasksHtml += '</tbody></table>';
+    }
+    html += section('tasks', 'Tasks', clientTasks.length, tasksHtml);
+
+    // MEETING NOTES
+    let notesHtml = '';
+    if (clientNotes.length === 0) { notesHtml = '<div style="padding:16px;color:var(--text-muted);font-size:12px;">No meeting notes for this client.</div>'; }
+    else {
+      notesHtml += '<table style="width:100%;border-collapse:collapse;">';
+      notesHtml += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Note</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Date</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Attendees</th></tr></thead><tbody>';
+      clientNotes.forEach(n => {
+        notesHtml += `<tr class="hub-note-row" data-id="${n.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;"><td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);">✎ ${(n.name||'Untitled').replace(/</g,'&lt;')}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${n.date||'—'}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-muted);">${(n.attendees||[]).length}</td></tr>`;
+      });
+      notesHtml += '</tbody></table>';
+    }
+    html += section('notes', 'Meeting Notes', clientNotes.length, notesHtml);
+
+    // INVOICES
+    let invHtml = '';
+    if (clientInvoices.length === 0) { invHtml = '<div style="padding:16px;color:var(--text-muted);font-size:12px;">No invoices for this client.</div>'; }
+    else {
+      invHtml += '<table style="width:100%;border-collapse:collapse;">';
+      invHtml += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Invoice</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Date</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Status</th></tr></thead><tbody>';
+      clientInvoices.forEach(inv => {
+        invHtml += `<tr class="hub-inv-row" data-id="${inv.id}" style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;"><td style="padding:8px 12px;font-size:13px;font-weight:500;color:var(--text);">#${inv.invoiceNo}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${inv.date||'—'}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${inv.status||''}</td></tr>`;
+      });
+      invHtml += '</tbody></table>';
+    }
+    html += section('invoices', 'Invoices', clientInvoices.length, invHtml);
+
+    // CALENDAR EVENTS
+    let evtHtml = '';
+    if (clientEvents.length === 0) { evtHtml = '<div style="padding:16px;color:var(--text-muted);font-size:12px;">No calendar events for this client.</div>'; }
+    else {
+      evtHtml += '<table style="width:100%;border-collapse:collapse;">';
+      evtHtml += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Event</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Date</th><th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);">Time</th></tr></thead><tbody>';
+      clientEvents.forEach(b => {
+        const t = b.taskId ? tasks.find(tt => tt.id === b.taskId) : null;
+        const title = t ? t.title : (b.title || 'Untitled');
+        evtHtml += `<tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;font-size:13px;color:var(--text);">${title.replace(/</g,'&lt;')}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${b.date||''}</td><td style="padding:8px 12px;font-size:12px;color:var(--text-muted);">${hourToLabel(b.startHour)}–${hourToLabel(b.startHour+b.duration)}</td></tr>`;
+      });
+      evtHtml += '</tbody></table>';
+    }
+    html += section('events', 'Calendar Events', clientEvents.length, evtHtml);
+
+    html += '</div>';
+    contactsView.innerHTML = html;
+
+    // Wire back button
+    contactsView.querySelector('#clientHubBack')?.addEventListener('click', () => { contactsViewMode = 'clients'; renderContacts(); });
+
+    // Collapsible sections
+    contactsView.querySelectorAll('.client-hub-section-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const id = hdr.dataset.section;
+        const body = contactsView.querySelector(`.client-hub-section-body[data-section="${id}"]`);
+        const arrow = hdr.querySelector('.client-hub-arrow');
+        if (body) { const hidden = body.style.display === 'none'; body.style.display = hidden ? '' : 'none'; if (arrow) arrow.textContent = hidden ? '▼' : '▶'; }
+      });
+    });
+
+    // Row hover effects
+    contactsView.querySelectorAll('tr[class^="hub-"]').forEach(el => {
+      el.addEventListener('mouseenter', () => { el.style.background = 'var(--surface-hover)'; });
+      el.addEventListener('mouseleave', () => { el.style.background = ''; });
+    });
+
+    // Click handlers
+    contactsView.querySelectorAll('.hub-contact-row').forEach(el => {
+      el.addEventListener('click', () => { activeContactId = el.dataset.id; contactsViewMode = 'detail'; renderContacts(); });
+    });
+    contactsView.querySelectorAll('.hub-task-row').forEach(el => {
+      el.addEventListener('click', () => { const t = tasks.find(tt => tt.id === el.dataset.id); if (t) openModal(t); });
+    });
+    contactsView.querySelectorAll('.hub-note-row').forEach(el => {
+      el.addEventListener('click', () => { openMnModal(el.dataset.id); });
+    });
+    contactsView.querySelectorAll('.hub-inv-row').forEach(el => {
+      el.addEventListener('click', () => { activeInvoiceId = el.dataset.id; invoiceViewMode = 'editor'; switchView('invoices'); });
     });
   }
 
