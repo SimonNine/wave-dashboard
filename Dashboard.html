@@ -1738,7 +1738,9 @@
     .mn-notes-area li, .mn-agenda-area li { margin: 2px 0; }
     .mn-notes-area blockquote, .mn-agenda-area blockquote { border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px; color: var(--text-secondary); font-style: italic; }
     .mn-notes-area hr, .mn-agenda-area hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-    .wcal-checklist-item { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+    .wcal-checklist-item { display: flex; align-items: flex-start; gap: 6px; margin: 3px 0; line-height: 1.5; }
+    .wcal-checklist-item input[type="checkbox"] { margin-top: 4px; }
+    .wcal-checklist-item span { flex: 1; min-height: 1.5em; outline: none; }
 
     /* Agenda area — subtle, collapsible */
     .mn-agenda-section { margin-bottom: 16px; }
@@ -9069,6 +9071,7 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         Agenda / Items to Discuss
       </button>
+      <div id="mnAgendaFmtBar" style="${(note && note.agenda) ? '' : 'display:none;'}">${fmtBar.replace(/id="mnImageInput"/g, 'id="mnAgendaImageInput"')}</div>
       <div class="mn-agenda-area" id="mnAgenda" contenteditable="true" data-placeholder="Things you want to cover..." style="${(note && note.agenda) ? '' : 'display:none;'}">${note ? (note.agenda || '') : ''}</div>
     </div>
 
@@ -9137,6 +9140,12 @@
     // Same for agenda
     const agendaEl = document.getElementById('mnAgenda');
     if (agendaEl) {
+      agendaEl.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
+        else if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); mnFmt('underline'); }
+        handleChecklistEnter(e);
+      });
       agendaEl.addEventListener('click', (e) => {
         const link = e.target.closest('a');
         if (link && link.href) { e.preventDefault(); window.open(link.href, '_blank'); }
@@ -9144,6 +9153,14 @@
       agendaEl.addEventListener('input', () => linkifyEditor(agendaEl));
       linkifyEditor(agendaEl);
       setupEditorImageDrop(agendaEl);
+      // Agenda image input
+      const agendaImgInput = document.getElementById('mnAgendaImageInput');
+      if (agendaImgInput) {
+        agendaImgInput.addEventListener('change', (e) => {
+          if (e.target.files[0]) insertImageFile(agendaEl, e.target.files[0]);
+          e.target.value = '';
+        });
+      }
     }
 
     clearDirty();
@@ -9316,9 +9333,11 @@
   function toggleMnAgenda() {
     const btn = document.querySelector('.mn-agenda-toggle');
     const area = document.getElementById('mnAgenda');
+    const fmtBar = document.getElementById('mnAgendaFmtBar');
     if (!btn || !area) return;
     const expanded = btn.classList.toggle('expanded');
     area.style.display = expanded ? '' : 'none';
+    if (fmtBar) fmtBar.style.display = expanded ? '' : 'none';
     if (expanded) area.focus();
   }
 
@@ -9328,30 +9347,75 @@
     if (e.key !== 'Enter') return;
     const sel = window.getSelection();
     if (!sel.rangeCount) return;
-    const node = sel.anchorNode;
-    const checklistItem = node?.nodeType === 3 ? node.parentElement?.closest('.wcal-checklist-item') : node?.closest?.('.wcal-checklist-item');
+
+    // Walk up from cursor to find a checklist item
+    let anchor = sel.anchorNode;
+    let checklistItem = null;
+    let el = anchor.nodeType === 3 ? anchor.parentElement : anchor;
+    while (el && !el.classList?.contains('mn-notes-area') && !el.classList?.contains('mn-agenda-area') && !el.classList?.contains('modal-notes-area')) {
+      if (el.classList?.contains('wcal-checklist-item')) { checklistItem = el; break; }
+      el = el.parentElement;
+    }
     if (!checklistItem) return;
 
     e.preventDefault();
-    // If the span text is empty, exit checklist mode (remove the empty item, insert a plain line break)
+    e.stopPropagation();
+
+    // Get the text span
     const span = checklistItem.querySelector('span');
-    if (span && span.textContent.trim() === '') {
+    const text = span ? span.textContent : '';
+
+    // If empty, exit checklist mode — replace with a plain paragraph
+    if (text.trim() === '') {
+      const p = document.createElement('p');
+      p.innerHTML = '<br>';
+      checklistItem.parentNode.insertBefore(p, checklistItem.nextSibling);
       checklistItem.remove();
-      document.execCommand('insertHTML', false, '<br>');
+      // Place cursor in the new paragraph
+      const range = document.createRange();
+      range.setStart(p, 0);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
       return;
     }
-    // Insert a new checklist item after the current one
+
+    // Split text at cursor position if cursor is mid-text
+    let trailingText = '';
+    if (span && sel.anchorNode) {
+      const range = sel.getRangeAt(0);
+      const afterRange = document.createRange();
+      afterRange.setStart(range.endContainer, range.endOffset);
+      afterRange.setEndAfter(span.lastChild || span);
+      const fragment = afterRange.extractContents();
+      trailingText = fragment.textContent;
+    }
+
+    // Create new checklist item
     const newItem = document.createElement('div');
     newItem.className = 'wcal-checklist-item';
-    newItem.innerHTML = '<input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;"> <span></span>';
-    checklistItem.insertAdjacentElement('afterend', newItem);
-    // Place cursor in the new span
-    const newSpan = newItem.querySelector('span');
-    const range = document.createRange();
-    range.setStart(newSpan, 0);
-    range.collapse(true);
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.style.cssText = 'margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;';
+    const newSpan = document.createElement('span');
+    newSpan.textContent = trailingText;
+    newItem.appendChild(cb);
+    newItem.appendChild(document.createTextNode(' '));
+    newItem.appendChild(newSpan);
+
+    checklistItem.parentNode.insertBefore(newItem, checklistItem.nextSibling);
+
+    // Place cursor at start of new span
+    const newRange = document.createRange();
+    if (newSpan.firstChild) {
+      newRange.setStart(newSpan.firstChild, 0);
+    } else {
+      newRange.setStart(newSpan, 0);
+    }
+    newRange.collapse(true);
     sel.removeAllRanges();
-    sel.addRange(range);
+    sel.addRange(newRange);
+    newSpan.focus();
   }
 
   function mnFmt(type) {
@@ -9378,8 +9442,26 @@
         const sel = window.getSelection();
         const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
         const label = (range && !range.collapsed) ? range.toString() : '';
+        // Insert as HTML then place cursor in the span
         document.execCommand('insertHTML', false,
-          `<div class="wcal-checklist-item"><input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;"> <span>${label}</span></div>`);
+          `<div class="wcal-checklist-item"><input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;"> <span>${label || '\u200B'}</span></div>`);
+        // Move cursor into the new span
+        setTimeout(() => {
+          const items = editor.querySelectorAll('.wcal-checklist-item');
+          const lastItem = items[items.length - 1];
+          if (lastItem) {
+            const span = lastItem.querySelector('span');
+            if (span) {
+              const r = document.createRange();
+              // Place cursor after the zero-width space or at end of text
+              const textNode = span.firstChild;
+              if (textNode) { r.setStart(textNode, textNode.length); r.collapse(true); }
+              else { r.setStart(span, 0); r.collapse(true); }
+              const s = window.getSelection();
+              s.removeAllRanges(); s.addRange(r);
+            }
+          }
+        }, 0);
         break;
       }
       case 'image': {
