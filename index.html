@@ -6592,7 +6592,11 @@
 
   // ===== WEEKLY CALENDAR PLANNER =====
   let _weekPanelStartDate = null; // Monday of displayed week
-  let _mydayWeekStartDate = null; // For My Day embed
+  let _mydayWeekStartDate = null; // For My Day embed (first visible day, today-3)
+
+  function getTodayCentred() {
+    const d = new Date(); d.setDate(d.getDate() - 3); d.setHours(0,0,0,0); return d;
+  }
 
   function getMonday(d) {
     const dt = new Date(d);
@@ -6681,7 +6685,7 @@
   }
 
   function renderWeekCalendar(container, weekStart, compact) {
-    const numDays = compact ? 5 : 7;
+    const numDays = 7;
     const todayString = dateStr(new Date());
 
     // Build day dates
@@ -7347,7 +7351,7 @@
     html += '<div class="myday-sections">';
 
     // — Weekly Calendar (hero element)
-    if (!_mydayWeekStartDate) _mydayWeekStartDate = getMonday(new Date());
+    if (!_mydayWeekStartDate) _mydayWeekStartDate = getTodayCentred();
     const mdWeekLabel = formatWeekLabel(_mydayWeekStartDate);
     html += `<div class="myday-section">
       <div class="myday-wcal-header">
@@ -7483,17 +7487,29 @@
     const mdWcalContainer = document.getElementById('mdWcalContainer');
     if (mdWcalContainer) {
       renderWeekCalendar(mdWcalContainer, _mydayWeekStartDate, true);
+      // Horizontal swipe: shift by 1 day per scroll
+      let _mdScrollCooldown = false;
+      mdWcalContainer.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 20) {
+          if (_mdScrollCooldown) return;
+          _mdScrollCooldown = true;
+          e.preventDefault();
+          _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + (e.deltaX > 0 ? 1 : -1));
+          renderMyDay();
+          setTimeout(() => { _mdScrollCooldown = false; }, 200);
+        }
+      }, { passive: false });
     }
     const mdPrev = document.getElementById('mdWcalPrev');
     const mdNext = document.getElementById('mdWcalNext');
     const mdToday = document.getElementById('mdWcalToday');
-    if (mdPrev) mdPrev.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() - 7); renderMyDay(); });
-    if (mdNext) mdNext.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + 7); renderMyDay(); });
-    if (mdToday) mdToday.addEventListener('click', () => { _mydayWeekStartDate = getMonday(new Date()); renderMyDay(); });
+    if (mdPrev) mdPrev.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() - 1); renderMyDay(); });
+    if (mdNext) mdNext.addEventListener('click', () => { _mydayWeekStartDate.setDate(_mydayWeekStartDate.getDate() + 1); renderMyDay(); });
+    if (mdToday) mdToday.addEventListener('click', () => { _mydayWeekStartDate = getTodayCentred(); renderMyDay(); });
     const mdExport = document.getElementById('mdWcalExport');
     if (mdExport) mdExport.addEventListener('click', () => {
-      const fri = new Date(_mydayWeekStartDate); fri.setDate(fri.getDate() + 4);
-      const weekBlocks = weekPlan.filter(b => b.date >= dateStr(_mydayWeekStartDate) && b.date <= dateStr(fri));
+      const endDay = new Date(_mydayWeekStartDate); endDay.setDate(endDay.getDate() + 6);
+      const weekBlocks = weekPlan.filter(b => b.date >= dateStr(_mydayWeekStartDate) && b.date <= dateStr(endDay));
       if (weekBlocks.length === 0) { showToast('No events this week'); return; }
       downloadICS(`wave-week-${dateStr(_mydayWeekStartDate)}.ics`, weekBlocks);
     });
