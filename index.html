@@ -1934,6 +1934,10 @@
     .wcal-days { display: flex; flex: 1; }
     .wcal-day-col { flex: 1; position: relative; border-left: 1px solid var(--border); min-height: calc(16 * 40px); }
     .wcal-day-col.today { background: color-mix(in srgb, var(--accent) 3%, transparent); }
+    .wcal-now-line { position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; height: 0; }
+    .wcal-now-line::before { content: ''; position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--urgent); }
+    .wcal-now-line::after { content: ''; position: absolute; left: 4px; right: 0; top: -1px; height: 2px; background: var(--urgent); border-radius: 1px; }
+    .wcal-now-label { position: absolute; right: 2px; top: -8px; font-size: 9px; font-weight: 700; color: var(--urgent); background: var(--bg); padding: 0 3px; border-radius: 3px; line-height: 1; }
     .wcal-slot { height: 20px; border-bottom: 1px dotted color-mix(in srgb, var(--border) 50%, transparent); }
     .wcal-slot.hour-start { border-bottom: 1px solid var(--border); }
     .wcal-slot.drag-over-slot { background: color-mix(in srgb, var(--accent) 12%, transparent); }
@@ -6720,6 +6724,15 @@
         const isHourStart = h === Math.floor(h);
         html += `<div class="wcal-slot${isHourStart ? ' hour-start' : ''}" data-hour="${h}"></div>`;
       }
+      // Current time indicator on today's column
+      if (day.isToday) {
+        const nowH = new Date().getHours() + new Date().getMinutes() / 60;
+        if (nowH >= WCAL_START && nowH <= WCAL_END) {
+          const nowTop = (nowH - WCAL_START) * WCAL_PX_PER_HOUR;
+          const nowLabel = hourToLabel(nowH);
+          html += `<div class="wcal-now-line" style="top:${nowTop}px;"><span class="wcal-now-label">${nowLabel}</span></div>`;
+        }
+      }
       // Render time blocks for this day with overlap detection
       const dayBlocks = weekPlan.filter(b => b.date === day.str);
       // Calculate overlap groups: blocks that overlap in time get offset
@@ -7037,13 +7050,32 @@
       });
     });
 
-    // Scroll to 8am by default
-    const scrollTarget = 8 * WCAL_PX_PER_HOUR; // 8am position
+    // Scroll to current time if today is visible, otherwise 8am
+    const todayCol = container.querySelector('.wcal-day-col.today');
+    const nowLine = container.querySelector('.wcal-now-line');
     const scrollParent = container.closest('.week-panel-body') || container.closest('.myday-wcal-wrap') || container;
-    if (scrollParent && scrollParent.scrollHeight > scrollParent.clientHeight) {
-      // Only auto-scroll if not already scrolled by user
-      if (scrollParent.scrollTop === 0) scrollParent.scrollTop = scrollTarget;
+    if (scrollParent && scrollParent.scrollHeight > scrollParent.clientHeight && scrollParent.scrollTop === 0) {
+      if (nowLine) {
+        // Scroll so the now-line is ~1/3 from top of view
+        const nowTop = parseFloat(nowLine.style.top) || 0;
+        scrollParent.scrollTop = Math.max(0, nowTop - scrollParent.clientHeight / 3);
+      } else {
+        scrollParent.scrollTop = 8 * WCAL_PX_PER_HOUR;
+      }
     }
+
+    // Update now-line position every 60s without full re-render
+    if (container._nowInterval) clearInterval(container._nowInterval);
+    container._nowInterval = setInterval(() => {
+      const line = container.querySelector('.wcal-now-line');
+      if (!line) return;
+      const nowH = new Date().getHours() + new Date().getMinutes() / 60;
+      if (nowH >= WCAL_START && nowH <= WCAL_END) {
+        line.style.top = ((nowH - WCAL_START) * WCAL_PX_PER_HOUR) + 'px';
+        const label = line.querySelector('.wcal-now-label');
+        if (label) label.textContent = hourToLabel(nowH);
+      }
+    }, 60000);
   }
 
   // === Floating Week Panel ===
