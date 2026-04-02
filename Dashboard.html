@@ -2358,6 +2358,7 @@
           <div class="modal-meta-item">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
             <select class="field-select" id="modalSpace"></select>
+            <button id="modalSpaceLink" title="Go to board" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:2px 6px;border-radius:10px;transition:all 0.15s;white-space:nowrap;">↗ Board</button>
           </div>
           <div class="modal-meta-item">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -8356,6 +8357,17 @@
       const newSpaceId = spaceSelect.value;
       const currentColId = document.getElementById('modalStatus').value;
       populateStatusDropdown(newSpaceId, currentColId);
+    };
+
+    // "Go to board" link — navigates to the task's space board
+    const spaceLink = document.getElementById('modalSpaceLink');
+    spaceLink.onclick = () => {
+      const spaceId = spaceSelect.value;
+      if (spaceId && spaceId !== 'unassigned') {
+        saveTask();
+        selectSpace(spaceId);
+        switchView('board');
+      }
     };
 
     const colorPicker = document.getElementById('colorPicker');
