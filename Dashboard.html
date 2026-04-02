@@ -493,6 +493,12 @@
 
     /* Main content */
     .main-content { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-x: auto; overflow-y: auto; transition: margin-right 0.3s ease; }
+    .wave-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: auto; }
+    .wave-footer-tagline { font-style: italic; letter-spacing: 0.3px; }
+    .wave-footer-sep { opacity: 0.4; }
+    .wave-footer-link { color: var(--accent); text-decoration: none; font-weight: 500; transition: opacity 0.15s; }
+    .wave-footer-link:hover { opacity: 0.8; text-decoration: underline; }
+    .wave-footer-version { font-weight: 600; color: var(--text-muted); opacity: 0.6; font-size: 10px; }
     .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
     .header-left { display: flex; flex-direction: column; gap: 4px; }
     .header-left h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
@@ -2242,6 +2248,15 @@
     <div id="contactsView" style="display: none;" class="contacts-container"></div>
     <div id="contentView" style="display: none;" class="content-container"></div>
     <div id="invoicesView" style="display: none; flex-shrink: 0;" class="invoices-container"></div>
+
+    <!-- App Footer -->
+    <footer class="wave-footer">
+      <span class="wave-footer-tagline">Catch the Wave</span>
+      <span class="wave-footer-sep">·</span>
+      <span>Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
+      <span class="wave-footer-sep">·</span>
+      <span class="wave-footer-version">v1.28</span>
+    </footer>
   </div>
 </div>
 
