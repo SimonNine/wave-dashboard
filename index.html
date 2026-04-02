@@ -1749,9 +1749,13 @@
     .mn-notes-area li, .mn-agenda-area li { margin: 2px 0; }
     .mn-notes-area blockquote, .mn-agenda-area blockquote { border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px; color: var(--text-secondary); font-style: italic; }
     .mn-notes-area hr, .mn-agenda-area hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-    .wcal-checklist-item { display: flex; align-items: flex-start; gap: 6px; margin: 3px 0; line-height: 1.5; }
-    .wcal-checklist-item input[type="checkbox"] { margin-top: 4px; }
-    .wcal-checklist-item span { flex: 1; min-height: 1.5em; outline: none; }
+    /* Checklist — uses native <ul> for reliable Enter/Backspace */
+    ul.checklist { list-style: none; padding-left: 4px; margin: 4px 0; }
+    ul.checklist li { position: relative; padding-left: 24px; margin: 2px 0; line-height: 1.6; cursor: text; }
+    ul.checklist li::before { content: ''; position: absolute; left: 0; top: 5px; width: 14px; height: 14px; border: 2px solid var(--border); border-radius: 3px; cursor: pointer; transition: all 0.15s; box-sizing: border-box; }
+    ul.checklist li.checked::before { background: var(--accent); border-color: var(--accent); }
+    ul.checklist li.checked::after { content: '✓'; position: absolute; left: 2px; top: 3px; font-size: 11px; color: white; font-weight: 700; pointer-events: none; }
+    ul.checklist li.checked { text-decoration: line-through; color: var(--text-muted); }
 
     /* Agenda area — subtle, collapsible */
     .mn-agenda-section { margin-bottom: 16px; }
@@ -2260,7 +2264,7 @@
 <footer class="wave-footer" id="waveFooter">
   <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
   <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-  <span class="wave-footer-right">Version 1.32</span>
+  <span class="wave-footer-right">Version 1.33</span>
 </footer>
 
 <!-- Tracker Column Manager Modal -->
@@ -8680,7 +8684,7 @@
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); document.execCommand('bold', false); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') { e.preventDefault(); document.execCommand('italic', false); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'u') { e.preventDefault(); document.execCommand('underline', false); }
-      handleChecklistEnter(e);
+      // checklist handled natively by <ul>
     });
     // Link click handling inside contentEditable
     notesEl.addEventListener('click', (e) => {
@@ -8693,6 +8697,8 @@
     linkifyEditor(notesEl);
     // Image drag-drop
     setupEditorImageDrop(notesEl);
+    // Checklist clicks
+    setupChecklistClicks(notesEl);
     // Image button
     const imgInput = document.getElementById('modalNotesImageInput');
     document.querySelector('#modalFmtBar .mn-fmt-btn[onclick*="image"]')?.addEventListener('click', () => {});
@@ -9378,7 +9384,7 @@
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
       else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
       else if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); mnFmt('underline'); }
-      handleChecklistEnter(e);
+      // checklist handled natively by <ul>
     });
     notesEl.addEventListener('input', updateMnWordCount);
     // Link click handling
@@ -9391,6 +9397,8 @@
     linkifyEditor(notesEl);
     // Image drag-drop
     setupEditorImageDrop(notesEl);
+    // Checklist clicks
+    setupChecklistClicks(notesEl);
     // Image file input
     const mnImgInput = document.getElementById('mnImageInput');
     if (mnImgInput) {
@@ -9406,7 +9414,7 @@
         if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
         else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
         else if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); mnFmt('underline'); }
-        handleChecklistEnter(e);
+        // checklist handled natively by <ul>
       });
       agendaEl.addEventListener('click', (e) => {
         const link = e.target.closest('a');
@@ -9415,6 +9423,7 @@
       agendaEl.addEventListener('input', () => linkifyEditor(agendaEl));
       linkifyEditor(agendaEl);
       setupEditorImageDrop(agendaEl);
+      setupChecklistClicks(agendaEl);
       // Agenda image input
       const agendaImgInput = document.getElementById('mnAgendaImageInput');
       if (agendaImgInput) {
@@ -9603,81 +9612,18 @@
     if (expanded) area.focus();
   }
 
-  // Rich text formatting — operates on whichever contenteditable area is focused
-  // Handle Enter key inside checklist items — create new checklist row or exit if empty
-  function handleChecklistEnter(e) {
-    if (e.key !== 'Enter') return;
-    const sel = window.getSelection();
-    if (!sel.rangeCount) return;
-
-    // Walk up from cursor to find a checklist item
-    let anchor = sel.anchorNode;
-    let checklistItem = null;
-    let el = anchor.nodeType === 3 ? anchor.parentElement : anchor;
-    while (el && !el.classList?.contains('mn-notes-area') && !el.classList?.contains('mn-agenda-area') && !el.classList?.contains('modal-notes-area')) {
-      if (el.classList?.contains('wcal-checklist-item')) { checklistItem = el; break; }
-      el = el.parentElement;
-    }
-    if (!checklistItem) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Get the text span
-    const span = checklistItem.querySelector('span');
-    const text = span ? span.textContent : '';
-
-    // If empty, exit checklist mode — replace with a plain paragraph
-    if (text.trim() === '') {
-      const p = document.createElement('p');
-      p.innerHTML = '<br>';
-      checklistItem.parentNode.insertBefore(p, checklistItem.nextSibling);
-      checklistItem.remove();
-      // Place cursor in the new paragraph
-      const range = document.createRange();
-      range.setStart(p, 0);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      return;
-    }
-
-    // Split text at cursor position if cursor is mid-text
-    let trailingText = '';
-    if (span && sel.anchorNode) {
-      const range = sel.getRangeAt(0);
-      const afterRange = document.createRange();
-      afterRange.setStart(range.endContainer, range.endOffset);
-      afterRange.setEndAfter(span.lastChild || span);
-      const fragment = afterRange.extractContents();
-      trailingText = fragment.textContent;
-    }
-
-    // Create new checklist item
-    const newItem = document.createElement('div');
-    newItem.className = 'wcal-checklist-item';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.style.cssText = 'margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;';
-    const newSpan = document.createElement('span');
-    newSpan.textContent = trailingText;
-    newItem.appendChild(cb);
-    newItem.appendChild(document.createTextNode(' '));
-    newItem.appendChild(newSpan);
-
-    checklistItem.parentNode.insertBefore(newItem, checklistItem.nextSibling);
-
-    // Place cursor at start of new span
-    const newRange = document.createRange();
-    if (newSpan.firstChild) {
-      newRange.setStart(newSpan.firstChild, 0);
-    } else {
-      newRange.setStart(newSpan, 0);
-    }
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-    newSpan.focus();
+  // Checklist toggle — click the checkbox area (::before pseudo) to toggle checked state
+  function setupChecklistClicks(editor) {
+    editor.addEventListener('click', (e) => {
+      // Detect click on the ::before checkbox area (left 24px of an <li> in .checklist)
+      const li = e.target.closest('ul.checklist li');
+      if (!li) return;
+      const rect = li.getBoundingClientRect();
+      if (e.clientX - rect.left < 24) {
+        e.preventDefault();
+        li.classList.toggle('checked');
+      }
+    });
   }
 
   function mnFmt(type) {
@@ -9701,27 +9647,16 @@
       case 'divider':
         document.execCommand('insertHTML', false, '<hr>'); break;
       case 'checklist': {
-        const sel = window.getSelection();
-        const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
-        const label = (range && !range.collapsed) ? range.toString() : '';
-        // Insert as HTML then place cursor in the span
-        document.execCommand('insertHTML', false,
-          `<div class="wcal-checklist-item"><input type="checkbox" style="margin:0;accent-color:var(--accent);flex-shrink:0;cursor:pointer;"> <span>${label || '\u200B'}</span></div>`);
-        // Move cursor into the new span
+        // Use native list, then add .checklist class to the <ul>
+        document.execCommand('insertUnorderedList', false);
+        // Find the <ul> the cursor is now in and add the checklist class
         setTimeout(() => {
-          const items = editor.querySelectorAll('.wcal-checklist-item');
-          const lastItem = items[items.length - 1];
-          if (lastItem) {
-            const span = lastItem.querySelector('span');
-            if (span) {
-              const r = document.createRange();
-              // Place cursor after the zero-width space or at end of text
-              const textNode = span.firstChild;
-              if (textNode) { r.setStart(textNode, textNode.length); r.collapse(true); }
-              else { r.setStart(span, 0); r.collapse(true); }
-              const s = window.getSelection();
-              s.removeAllRanges(); s.addRange(r);
-            }
+          const sel = window.getSelection();
+          if (!sel.rangeCount) return;
+          let node = sel.anchorNode;
+          while (node && node !== editor) {
+            if (node.nodeName === 'UL') { node.classList.add('checklist'); break; }
+            node = node.parentNode;
           }
         }, 0);
         break;
