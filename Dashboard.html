@@ -2254,7 +2254,7 @@
     <footer class="wave-footer">
       <span class="wave-footer-left">Catch the Wave</span>
       <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-      <span class="wave-footer-right">Version 1.30</span>
+      <span class="wave-footer-right">Version 1.31</span>
     </footer>
   </div>
 </div>
@@ -6820,15 +6820,34 @@
       el.addEventListener('mouseleave', () => { el.style.background = ''; });
     });
 
-    // Click handlers
+    // Click handlers — open items and return to client hub on close
+    const returnToHub = () => { contactsViewMode = 'client-detail'; switchView('contacts'); };
+
     contactsView.querySelectorAll('.hub-contact-row').forEach(el => {
       el.addEventListener('click', () => { activeContactId = el.dataset.id; contactsViewMode = 'detail'; renderContacts(); });
     });
     contactsView.querySelectorAll('.hub-task-row').forEach(el => {
-      el.addEventListener('click', () => { const t = tasks.find(tt => tt.id === el.dataset.id); if (t) openModal(t); });
+      el.addEventListener('click', () => {
+        const t = tasks.find(tt => tt.id === el.dataset.id);
+        if (!t) return;
+        openModal(t);
+        // Return to client hub when task modal closes
+        const obs = new MutationObserver((muts) => {
+          if (!modalOverlay.classList.contains('open')) { obs.disconnect(); setTimeout(returnToHub, 50); }
+        });
+        obs.observe(modalOverlay, { attributes: true });
+      });
     });
     contactsView.querySelectorAll('.hub-note-row').forEach(el => {
-      el.addEventListener('click', () => { openMnModal(el.dataset.id); });
+      el.addEventListener('click', () => {
+        openMnModal(el.dataset.id);
+        // Return to client hub when note modal closes
+        const mnOv = document.getElementById('mnModalOverlay');
+        const obs = new MutationObserver((muts) => {
+          if (!mnOv.classList.contains('open')) { obs.disconnect(); setTimeout(returnToHub, 50); }
+        });
+        obs.observe(mnOv, { attributes: true });
+      });
     });
     contactsView.querySelectorAll('.hub-inv-row').forEach(el => {
       el.addEventListener('click', () => { activeInvoiceId = el.dataset.id; invoiceViewMode = 'editor'; switchView('invoices'); });
