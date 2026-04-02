@@ -492,7 +492,7 @@
     }
 
     /* Main content */
-    .main-content { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-x: hidden; overflow-y: auto; }
+    .main-content { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-x: auto; overflow-y: auto; transition: margin-right 0.3s ease; }
     .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
     .header-left { display: flex; flex-direction: column; gap: 4px; }
     .header-left h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
@@ -7094,16 +7094,28 @@
       renderWeekCalendar(body, _weekPanelStartDate, false);
     }
 
+    const mainContent = document.querySelector('.main-content');
+
+    function updateMainMargin() {
+      if (mainContent && weekPanelOpen) {
+        mainContent.style.marginRight = panel.offsetWidth + 'px';
+      }
+    }
+
     function openPanel() {
       weekPanelOpen = true;
       overlay.classList.add('open');
       trigger.classList.add('hidden');
       renderPanel();
+      setTimeout(updateMainMargin, 50); // after transition starts
+      // Update again after transition completes
+      setTimeout(updateMainMargin, 350);
     }
     function closePanel() {
       weekPanelOpen = false;
       overlay.classList.remove('open');
       trigger.classList.remove('hidden');
+      if (mainContent) mainContent.style.marginRight = '';
     }
 
     trigger.addEventListener('click', openPanel);
@@ -7138,6 +7150,7 @@
         const newWidth = Math.max(300, Math.min(window.innerWidth * 0.7, startWidth + delta));
         weekPanelWidth = (newWidth / window.innerWidth) * 100;
         panel.style.width = newWidth + 'px';
+        if (mainContent && weekPanelOpen) mainContent.style.marginRight = newWidth + 'px';
       }
       function onUp() {
         document.removeEventListener('mousemove', onMove);
