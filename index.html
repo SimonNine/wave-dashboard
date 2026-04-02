@@ -2264,7 +2264,7 @@
 <footer class="wave-footer" id="waveFooter">
   <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
   <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-  <span class="wave-footer-right">Version 1.33</span>
+  <span class="wave-footer-right">Version 1.34</span>
 </footer>
 
 <!-- Tracker Column Manager Modal -->
@@ -9380,6 +9380,7 @@
 
     // Keyboard shortcuts in notes area (contenteditable)
     const notesEl = document.getElementById('mnNotes');
+    notesEl.addEventListener('focus', () => { _lastMnEditor = notesEl; });
     notesEl.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
       else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
@@ -9410,6 +9411,7 @@
     // Same for agenda
     const agendaEl = document.getElementById('mnAgenda');
     if (agendaEl) {
+      agendaEl.addEventListener('focus', () => { _lastMnEditor = agendaEl; });
       agendaEl.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); mnFmt('bold'); }
         else if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); mnFmt('italic'); }
@@ -9434,6 +9436,7 @@
       }
     }
 
+    _lastMnEditor = notesEl; // default to notes editor
     clearDirty();
     document.getElementById('mnModalOverlay').classList.add('open');
     // Focus title if new
@@ -9626,12 +9629,12 @@
     });
   }
 
+  let _lastMnEditor = null; // Track which editor (notes or agenda) was last focused
   function mnFmt(type) {
-    // Find the active editor (notes or agenda)
-    const focused = document.activeElement;
     const notesEl = document.getElementById('mnNotes');
     const agendaEl = document.getElementById('mnAgenda');
-    const editor = (focused === notesEl || focused === agendaEl) ? focused : notesEl;
+    // Use the last-focused editor, or fall back to notes
+    const editor = _lastMnEditor || notesEl;
     if (!editor) return;
     editor.focus();
 
