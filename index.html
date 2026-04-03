@@ -2264,7 +2264,7 @@
 <footer class="wave-footer" id="waveFooter">
   <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
   <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-  <span class="wave-footer-right">Version 1.35</span>
+  <span class="wave-footer-right">Version 1.36</span>
 </footer>
 
 <!-- Tracker Column Manager Modal -->
@@ -2781,7 +2781,15 @@
       <button class="evt-star-btn" id="evtStar" title="Star">★</button>
     </div>
     <div>
-      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">Colour</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Linked Tasks</div>
+      <div id="evtTaskTiles" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+      <div style="position:relative;">
+        <input type="text" id="evtTaskSearch" placeholder="Search tasks to link..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg);color:var(--text);font-size:12px;">
+        <div id="evtTaskDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);max-height:150px;overflow-y:auto;z-index:10;box-shadow:0 4px 12px var(--card-shadow);"></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Colour</div>
       <div class="evt-modal-colors" id="evtColors"></div>
     </div>
     <div class="evt-modal-actions">
@@ -7500,6 +7508,51 @@
       colorsEl.appendChild(swatch);
     });
 
+    // Linked tasks
+    if (!block.linkedTaskIds) block.linkedTaskIds = [];
+    function renderEvtTaskTiles() {
+      const container = document.getElementById('evtTaskTiles');
+      if (!container) return;
+      container.innerHTML = block.linkedTaskIds.map((tid, i) => {
+        const t = tasks.find(x => x.id === tid);
+        if (!t) return '';
+        const sp = spaces.find(s => s.id === t.space);
+        return `<div class="evt-task-tile" data-task-id="${tid}" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);cursor:pointer;transition:all 0.15s;font-size:12px;">
+          <span style="flex:1;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(t.title||'').replace(/</g,'&lt;')}</span>
+          <span style="font-size:10px;color:var(--text-muted);">${sp ? sp.name : ''}</span>
+          <button class="evt-task-remove" data-idx="${i}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 2px;">✕</button>
+        </div>`;
+      }).join('');
+      container.querySelectorAll('.evt-task-tile').forEach(el => {
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.evt-task-remove')) return;
+          const t = tasks.find(x => x.id === el.dataset.taskId);
+          if (t) { closeEventModal(); openModal(t); }
+        });
+      });
+      container.querySelectorAll('.evt-task-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); block.linkedTaskIds.splice(parseInt(btn.dataset.idx), 1); renderEvtTaskTiles(); });
+      });
+    }
+    renderEvtTaskTiles();
+
+    const evtSearchInput = document.getElementById('evtTaskSearch');
+    const evtDropdown = document.getElementById('evtTaskDropdown');
+    function showEvtTaskDropdown(q) {
+      const filtered = tasks.filter(t => !block.linkedTaskIds.includes(t.id) && (!q || t.title.toLowerCase().includes(q.toLowerCase()) || t.id.toLowerCase().includes(q.toLowerCase()))).slice(0, 8);
+      if (!filtered.length) { evtDropdown.style.display = 'none'; return; }
+      evtDropdown.innerHTML = filtered.map(t => `<div class="evt-task-dd-item" data-id="${t.id}" style="padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text);transition:background 0.1s;">${(t.title||'').replace(/</g,'&lt;')} <span style="font-size:10px;color:var(--text-muted);">${t.id}</span></div>`).join('');
+      evtDropdown.style.display = 'block';
+      evtDropdown.querySelectorAll('.evt-task-dd-item').forEach(el => {
+        el.addEventListener('mousedown', (e) => { e.preventDefault(); block.linkedTaskIds.push(el.dataset.id); renderEvtTaskTiles(); evtSearchInput.value = ''; evtDropdown.style.display = 'none'; });
+        el.addEventListener('mouseenter', () => { el.style.background = 'var(--surface-hover)'; });
+        el.addEventListener('mouseleave', () => { el.style.background = ''; });
+      });
+    }
+    evtSearchInput.addEventListener('focus', () => showEvtTaskDropdown(evtSearchInput.value));
+    evtSearchInput.addEventListener('input', () => showEvtTaskDropdown(evtSearchInput.value));
+    evtSearchInput.addEventListener('blur', () => setTimeout(() => { evtDropdown.style.display = 'none'; }, 150));
+
     // Wire buttons
     document.getElementById('evtSave').onclick = () => saveEvent();
     document.getElementById('evtCancel').onclick = () => closeEventModal();
@@ -7572,7 +7625,7 @@
       weekPlan.push(block);
     } else {
       const existing = weekPlan.find(b => b.id === block.id);
-      if (existing) Object.assign(existing, { title: block.title, space: block.space, starred: block.starred, color: block.color });
+      if (existing) Object.assign(existing, { title: block.title, space: block.space, starred: block.starred, color: block.color, linkedTaskIds: block.linkedTaskIds || [] });
     }
     saveState();
     closeEventModal();
