@@ -2289,7 +2289,7 @@
 <footer class="wave-footer" id="waveFooter">
   <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
   <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-  <span class="wave-footer-right">Version 1.37</span>
+  <span class="wave-footer-right">Version 1.38</span>
 </footer>
 
 <!-- Tracker Column Manager Modal -->
@@ -4116,24 +4116,9 @@
       else { area.style.display = 'none'; arrow.textContent = '▸'; }
     });
 
-    // Command bar
-    const cmdInput = document.getElementById('commandBarInput');
-    const cmdSend = document.getElementById('commandBarSend');
-    cmdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') executeCommand(cmdInput.value); });
-    cmdSend.addEventListener('click', () => executeCommand(cmdInput.value));
-
-    // Quick Command button and modal
+    // Wizard command flow
     document.getElementById('quickCmdBtn').addEventListener('click', openQuickCmd);
     document.getElementById('wizardClose').addEventListener('click', closeWizard);
-    document.querySelectorAll('.quick-cmd-example').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('commandBarInput').value = btn.textContent;
-        document.getElementById('commandBarInput').focus();
-      });
-    });
-    document.getElementById('quickCmdOverlay').addEventListener('click', (e) => {
-      if (e.target.id === 'quickCmdOverlay') closeQuickCmd();
-    });
 
     // Timer Stop Beep button
     document.getElementById('timerStopBeep').addEventListener('click', stopTimerBeep);
@@ -9368,10 +9353,8 @@
   // ===== COMMAND BAR =====
   function showCommandFeedback(msg, type) {
     const el = document.getElementById('commandFeedback');
-    el.textContent = msg;
-    el.className = 'command-bar-feedback ' + type;
-    clearTimeout(window._cmdFeedbackTimeout);
-    window._cmdFeedbackTimeout = setTimeout(() => { el.className = 'command-bar-feedback'; }, 4000);
+    if (el) { el.textContent = msg; el.className = 'command-bar-feedback ' + type; clearTimeout(window._cmdFeedbackTimeout); window._cmdFeedbackTimeout = setTimeout(() => { el.className = 'command-bar-feedback'; }, 4000); }
+    else { showToast(msg); }
   }
 
   function findSpaceByName(name) {
@@ -9384,7 +9367,8 @@
   function executeCommand(raw) {
     const input = raw.trim();
     if (!input) return;
-    document.getElementById('commandBarInput').value = '';
+    const cmdBarEl = document.getElementById('commandBarInput');
+    if (cmdBarEl) cmdBarEl.value = '';
     const lower = input.toLowerCase();
 
     // --- Create task in specific column ---
