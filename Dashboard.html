@@ -2016,6 +2016,31 @@
     .myday-wcal-nav button { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; cursor: pointer; color: var(--text-secondary); font-size: 12px; font-weight: 500; transition: all 0.15s; }
     .myday-wcal-nav button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
+    /* ===== WIZARD COMMAND FLOW ===== */
+    .wizard-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 7000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+    .wizard-overlay.open { display: flex; }
+    .wizard-close { position: absolute; top: 20px; right: 24px; background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; padding: 6px 14px; border-radius: var(--radius-xs); transition: all 0.15s; }
+    .wizard-close:hover { color: var(--accent); background: var(--surface-hover); }
+    .wizard-breadcrumb { position: absolute; top: 24px; left: 28px; display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-muted); }
+    .wizard-breadcrumb span { cursor: pointer; transition: color 0.15s; }
+    .wizard-breadcrumb span:hover { color: var(--accent); }
+    .wizard-breadcrumb .sep { cursor: default; opacity: 0.4; }
+    .wizard-body { max-width: 480px; width: 100%; padding: 0 24px; animation: wizardFadeIn 0.2s ease; }
+    @keyframes wizardFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .wizard-question { font-size: 24px; font-weight: 600; color: var(--text); margin-bottom: 28px; letter-spacing: -0.3px; }
+    .wizard-options { display: flex; flex-direction: column; gap: 6px; }
+    .wizard-option { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .wizard-option:hover, .wizard-option.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+    .wizard-option-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+    .wizard-option-num { font-size: 10px; color: var(--text-muted); margin-left: auto; opacity: 0.5; font-weight: 600; }
+    .wizard-search { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--surface); color: var(--text); font-size: 14px; font-family: inherit; outline: none; margin-bottom: 12px; box-sizing: border-box; }
+    .wizard-search:focus { border-color: var(--accent); }
+    .wizard-search-results { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .wizard-result { padding: 10px 14px; border-radius: var(--radius-xs); cursor: pointer; transition: all 0.1s; font-size: 13px; color: var(--text); }
+    .wizard-result:hover, .wizard-result.selected { background: var(--accent-light); color: var(--accent); }
+    .wizard-result-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .wizard-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 20px; }
+
     @media print { .no-print { display: none !important; } }
   </style>
 </head>
@@ -2264,7 +2289,7 @@
 <footer class="wave-footer" id="waveFooter">
   <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
   <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-  <span class="wave-footer-right">Version 1.36</span>
+  <span class="wave-footer-right">Version 1.37</span>
 </footer>
 
 <!-- Tracker Column Manager Modal -->
@@ -2594,33 +2619,16 @@
 </div>
 
 <!-- Quick Command modal -->
-<div class="cmd-modal-overlay" id="quickCmdOverlay">
-  <div class="cmd-modal">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <span style="font-size:18px;">⚡</span>
-      <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0;">Quick Command</h2>
-      <button class="modal-close" onclick="closeQuickCmd()" style="margin-left:auto;">×</button>
-    </div>
-    <div class="command-bar-wrap" style="margin-bottom:8px;">
-      <input type="text" class="command-bar-input" id="commandBarInput" placeholder="What would you like to do?" style="padding:12px 40px 12px 14px;font-size:14px;">
-      <button class="command-bar-send" id="commandBarSend" title="Run command">▶</button>
-    </div>
-    <div class="command-bar-feedback" id="commandFeedback"></div>
-    <div style="margin-top:12px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px;">Examples</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="quickCmdExamples">
-        <button class="quick-cmd-example">Create task "Review deck" on Team Rollouts</button>
-        <button class="quick-cmd-example">Create task "Update copy" on Harbinger in Website</button>
-        <button class="quick-cmd-example">Complete "Review deck"</button>
-        <button class="quick-cmd-example">Move "Update copy" to In Progress</button>
-        <button class="quick-cmd-example">Add "Review deck" to my day</button>
-        <button class="quick-cmd-example">Go to board</button>
-        <button class="quick-cmd-example">Set "Review deck" to urgent</button>
-        <button class="quick-cmd-example">Create space called New Client</button>
-      </div>
-    </div>
-  </div>
+<!-- Wizard Command Flow (Cmd+J) -->
+<div class="wizard-overlay" id="wizardOverlay">
+  <div class="wizard-breadcrumb" id="wizardBreadcrumb"></div>
+  <button class="wizard-close" id="wizardClose">esc to close</button>
+  <div class="wizard-body" id="wizardBody"></div>
+  <div class="wizard-hint"><kbd>↑↓</kbd> navigate · <kbd>↵</kbd> select · <kbd>esc</kbd> back · <kbd>1-9</kbd> quick pick</div>
 </div>
+
+<!-- Legacy Quick Command (hidden, kept for sidebar command bar) -->
+<div class="cmd-modal-overlay" id="quickCmdOverlay" style="display:none !important;"></div>
 
 <!-- Templates panel -->
 <div class="templates-panel-overlay" id="templatesPanelOverlay">
@@ -4116,6 +4124,7 @@
 
     // Quick Command button and modal
     document.getElementById('quickCmdBtn').addEventListener('click', openQuickCmd);
+    document.getElementById('wizardClose').addEventListener('click', closeWizard);
     document.querySelectorAll('.quick-cmd-example').forEach(btn => {
       btn.addEventListener('click', () => {
         document.getElementById('commandBarInput').value = btn.textContent;
@@ -4579,15 +4588,255 @@
   }
 
   // ===== QUICK COMMAND =====
-  function openQuickCmd() {
-    document.getElementById('quickCmdOverlay').classList.add('open');
-    setTimeout(() => document.getElementById('commandBarInput').focus(), 100);
+  // Legacy — kept for backward compat with sidebar command bar references
+  function openQuickCmd() { openWizard(); }
+  function closeQuickCmd() { closeWizard(); }
+
+  // ===== WIZARD COMMAND FLOW =====
+  const WIZARD_FLOWS = [
+    { id: 'task', label: 'Task', icon: '◫', steps: [
+      { question: 'What would you like to do with a task?', options: [
+        { label: 'Create new task', icon: '✚', action: 'createTask' },
+        { label: 'Find & edit a task', icon: '⌕', next: 'task-search' },
+        { label: 'Mark a task as done', icon: '✓', next: 'task-done' },
+        { label: 'Star a task', icon: '★', next: 'task-star' },
+        { label: 'Clone a task', icon: '⧉', next: 'task-clone' },
+        { label: 'Delete a task', icon: '✕', next: 'task-delete' },
+      ]},
+      { id: 'task-search', question: 'Search for a task', type: 'search', source: 'tasks', action: 'openTask' },
+      { id: 'task-done', question: 'Which task is done?', type: 'search', source: 'tasks', action: 'completeTask' },
+      { id: 'task-star', question: 'Star which task?', type: 'search', source: 'tasks', action: 'starTask' },
+      { id: 'task-clone', question: 'Clone which task?', type: 'search', source: 'tasks', action: 'cloneTaskWiz' },
+      { id: 'task-delete', question: 'Delete which task?', type: 'search', source: 'tasks', action: 'deleteTaskWiz' },
+    ]},
+    { id: 'event', label: 'Calendar Event', icon: '▦', steps: [
+      { question: 'What would you like to do?', options: [
+        { label: 'Open My Week panel', icon: '◉', action: 'openWeekPanel' },
+        { label: 'Export this week to iCal', icon: '↓', action: 'exportWeek' },
+        { label: 'Go to My Day', icon: '→', action: 'navMyDay' },
+      ]}
+    ]},
+    { id: 'invoice', label: 'Invoice', icon: '£', steps: [
+      { question: 'What would you like to do with an invoice?', options: [
+        { label: 'Create new invoice', icon: '✚', action: 'createInvoice' },
+        { label: 'Find & edit an invoice', icon: '⌕', next: 'inv-search' },
+        { label: 'Clone an invoice', icon: '⧉', next: 'inv-clone' },
+      ]},
+      { id: 'inv-search', question: 'Search invoices', type: 'search', source: 'invoices', action: 'openInvoice' },
+      { id: 'inv-clone', question: 'Clone which invoice?', type: 'search', source: 'invoices', action: 'cloneInvoiceWiz' },
+    ]},
+    { id: 'note', label: 'Meeting Note', icon: '✎', steps: [
+      { question: 'What would you like to do with a note?', options: [
+        { label: 'Create new note', icon: '✚', action: 'createNote' },
+        { label: 'Find & edit a note', icon: '⌕', next: 'note-search' },
+        { label: 'Clone a note', icon: '⧉', next: 'note-clone' },
+      ]},
+      { id: 'note-search', question: 'Search notes', type: 'search', source: 'meetingNotes', action: 'openNote' },
+      { id: 'note-clone', question: 'Clone which note?', type: 'search', source: 'meetingNotes', action: 'cloneNoteWiz' },
+    ]},
+    { id: 'contact', label: 'Contact', icon: '◉', steps: [
+      { question: 'What would you like to do?', options: [
+        { label: 'Create new contact', icon: '✚', action: 'createContact' },
+        { label: 'Find a contact', icon: '⌕', next: 'contact-search' },
+        { label: 'View clients', icon: '→', action: 'viewClients' },
+      ]},
+      { id: 'contact-search', question: 'Search contacts', type: 'search', source: 'contacts', action: 'openContact' },
+    ]},
+    { id: 'navigate', label: 'Navigate', icon: '→', steps: [
+      { question: 'Where to?', options: [
+        { label: 'My Day', icon: '◉', action: 'navMyDay' },
+        { label: 'Board', icon: '▦', action: 'navBoard' },
+        { label: 'Calendar', icon: '▥', action: 'navCalendar' },
+        { label: 'List', icon: '☰', action: 'navList' },
+        { label: 'Timeline', icon: '⊞', action: 'navTimeline' },
+        { label: 'Meeting Notes', icon: '✎', action: 'navNotes' },
+        { label: 'People & Clients', icon: '◉', action: 'navContacts' },
+        { label: 'Finance', icon: '£', action: 'navInvoices' },
+        { label: 'Content', icon: '✦', action: 'navContent' },
+      ]}
+    ]},
+    { id: 'settings', label: 'Settings', icon: '⚙', steps: [
+      { question: 'What would you like to do?', options: [
+        { label: 'Toggle dark / light mode', icon: '◑', action: 'toggleTheme' },
+        { label: 'Change theme', icon: '◈', action: 'changeTheme' },
+        { label: 'Toggle compact mode', icon: '▤', action: 'toggleCompact' },
+        { label: 'Keyboard shortcuts', icon: '⌥', action: 'showShortcuts' },
+        { label: 'Export backup', icon: '↓', action: 'exportBackup' },
+        { label: 'Zen mode', icon: '◎', action: 'enterZen' },
+      ]}
+    ]},
+  ];
+
+  // Action handlers — map action string to function
+  const WIZARD_ACTIONS = {
+    // Tasks
+    createTask: () => createNewTask(),
+    openTask: (item) => openModal(item),
+    completeTask: (item) => { if (!item.lastColumnName) item.lastColumnName = getColumnTitle(item); item.column = 'done'; item.status = 'Done'; item.lastModifiedLocally = Date.now(); fireCelebration(); handleRecurringTask(item); saveState(); renderCurrentView(); showToast(`"${item.title}" marked done`); },
+    starTask: (item) => { setMyDay(item, true); saveState(); renderCurrentView(); showToast(`"${item.title}" starred`); },
+    cloneTaskWiz: (item) => { const c = JSON.parse(JSON.stringify(item)); c.id = 'WAVE-' + Date.now(); c.title += ' (copy)'; c.createdAt = Date.now(); c.lastModifiedLocally = Date.now(); delete c.linkedNoteIds; delete c.linkedInvoiceId; tasks.push(c); saveState(); openModal(c); showToast('Task cloned'); },
+    deleteTaskWiz: (item) => { moveToTrash(item); saveState(); renderCurrentView(); renderSpaces(); updateTrashBadge(); showToast(`"${item.title}" moved to trash`); },
+    // Events
+    openWeekPanel: () => { if (window._openWeekPanel) window._openWeekPanel(); },
+    exportWeek: () => { const mon = getMonday(new Date()); const sun = new Date(mon); sun.setDate(sun.getDate() + 6); const blocks = weekPlan.filter(b => b.date >= dateStr(mon) && b.date <= dateStr(sun)); if (blocks.length) downloadICS('wave-week.ics', blocks); else showToast('No events this week'); },
+    // Invoices
+    createInvoice: () => { switchView('invoices'); setTimeout(() => document.getElementById('newInvoiceBtn')?.click(), 100); },
+    openInvoice: (item) => { activeInvoiceId = item.id; invoiceViewMode = 'editor'; switchView('invoices'); },
+    cloneInvoiceWiz: (item) => { cloneInvoice(item.id); },
+    // Notes
+    createNote: () => { switchView('meetingnotes'); setTimeout(() => openMnModal(null), 100); },
+    openNote: (item) => { openMnModal(item.id); },
+    cloneNoteWiz: (item) => { cloneMeetingNoteById(item.id); },
+    // Contacts
+    createContact: () => { const nc = { id: 'contact-' + Date.now(), name: 'New Contact', email: '', company: '', role: '', phone: '', notes: '', imageUrl: '', space: '', tags: [], createdAt: Date.now(), updatedAt: Date.now() }; contacts.push(nc); activeContactId = nc.id; contactsViewMode = 'detail'; saveState(); switchView('contacts'); },
+    openContact: (item) => { activeContactId = item.id; contactsViewMode = 'detail'; switchView('contacts'); },
+    viewClients: () => { contactsViewMode = 'clients'; switchView('contacts'); },
+    // Navigate
+    navMyDay: () => switchView('myday'), navBoard: () => switchView('board'), navCalendar: () => switchView('calendar'),
+    navList: () => switchView('list'), navTimeline: () => switchView('timeline'), navNotes: () => switchView('meetingnotes'),
+    navContacts: () => switchView('contacts'), navInvoices: () => switchView('invoices'), navContent: () => switchView('content'),
+    // Settings
+    toggleTheme: () => toggleTheme(), changeTheme: () => openThemePicker(), toggleCompact: () => toggleCompact(),
+    showShortcuts: () => openShortcutsModal(), exportBackup: () => exportFullBackup(), enterZen: () => enterZenMode(),
+  };
+
+  // Search data sources
+  function getWizardSearchItems(source) {
+    switch (source) {
+      case 'tasks': return tasks.map(t => ({ id: t.id, label: t.title, sub: (spaces.find(s => s.id === t.space)?.name || '') + ' · ' + (t.status || ''), _item: t }));
+      case 'invoices': return invoices.map(i => ({ id: i.id, label: '#' + i.invoiceNo + (i.client ? ' — ' + i.client : ''), sub: (i.date || '') + ' · ' + (i.status || ''), _item: i }));
+      case 'meetingNotes': return meetingNotes.map(n => ({ id: n.id, label: n.name || 'Untitled', sub: (n.date || '') + (n.space ? ' · ' + (spaces.find(s => s.id === n.space)?.name || '') : ''), _item: n }));
+      case 'contacts': return contacts.map(c => ({ id: c.id, label: c.name, sub: (c.company || '') + (c.email ? ' · ' + c.email : ''), _item: c }));
+      default: return [];
+    }
   }
-  function closeQuickCmd() {
-    document.getElementById('quickCmdOverlay').classList.remove('open');
-    document.getElementById('commandBarInput').value = '';
-    document.getElementById('commandFeedback').className = 'command-bar-feedback';
+
+  // Wizard state
+  let _wizardOpen = false;
+  let _wizardHistory = []; // stack of { flowId, stepId, selectedItem }
+  let _wizardSelectedIdx = 0;
+  let _wizardSelectedItem = null; // for multi-step flows
+
+  function openWizard() {
+    _wizardOpen = true;
+    _wizardHistory = [];
+    _wizardSelectedIdx = 0;
+    _wizardSelectedItem = null;
+    document.getElementById('wizardOverlay').classList.add('open');
+    renderWizardRoot();
   }
+
+  function closeWizard() {
+    _wizardOpen = false;
+    document.getElementById('wizardOverlay').classList.remove('open');
+  }
+
+  function wizardBack() {
+    if (_wizardHistory.length === 0) { closeWizard(); return; }
+    _wizardHistory.pop();
+    _wizardSelectedIdx = 0;
+    if (_wizardHistory.length === 0) { renderWizardRoot(); }
+    else { const last = _wizardHistory[_wizardHistory.length - 1]; renderWizardFlowStep(last.flowId, last.stepId); }
+  }
+
+  function renderWizardBreadcrumb() {
+    const bc = document.getElementById('wizardBreadcrumb');
+    let parts = ['<span onclick="renderWizardRoot();_wizardHistory=[];">⌘</span>'];
+    _wizardHistory.forEach((h, i) => {
+      const flow = WIZARD_FLOWS.find(f => f.id === h.flowId);
+      parts.push('<span class="sep">›</span>');
+      parts.push(`<span onclick="_wizardHistory.splice(${i+1});renderWizardFlowStep('${h.flowId}','${h.stepId||''}')">${flow ? flow.label : h.flowId}</span>`);
+    });
+    bc.innerHTML = parts.join('');
+  }
+
+  function renderWizardRoot() {
+    _wizardHistory = [];
+    _wizardSelectedIdx = 0;
+    renderWizardBreadcrumb();
+    const body = document.getElementById('wizardBody');
+    body.innerHTML = `<div class="wizard-question">What would you like to do?</div>
+      <div class="wizard-options" id="wizardOptions">
+        ${WIZARD_FLOWS.map((f, i) => `<div class="wizard-option${i === 0 ? ' selected' : ''}" data-flow="${f.id}" data-idx="${i}"><span class="wizard-option-icon">${f.icon}</span>${f.label}<span class="wizard-option-num">${i + 1}</span></div>`).join('')}
+      </div>`;
+    body.querySelectorAll('.wizard-option').forEach(el => {
+      el.addEventListener('click', () => { _wizardHistory.push({ flowId: el.dataset.flow, stepId: null }); renderWizardFlowStep(el.dataset.flow, null); });
+    });
+  }
+
+  function renderWizardFlowStep(flowId, stepId) {
+    const flow = WIZARD_FLOWS.find(f => f.id === flowId);
+    if (!flow) return;
+    const step = stepId ? flow.steps.find(s => s.id === stepId) : flow.steps[0];
+    if (!step) return;
+    _wizardSelectedIdx = 0;
+    renderWizardBreadcrumb();
+    const body = document.getElementById('wizardBody');
+
+    if (step.type === 'search') {
+      // Search step
+      const allItems = getWizardSearchItems(step.source);
+      body.innerHTML = `<div class="wizard-question">${step.question}</div>
+        <input type="text" class="wizard-search" id="wizardSearchInput" placeholder="Type to search..." autocomplete="off">
+        <div class="wizard-search-results" id="wizardSearchResults"></div>`;
+      const input = document.getElementById('wizardSearchInput');
+      const results = document.getElementById('wizardSearchResults');
+      function renderResults(q) {
+        const filtered = q ? allItems.filter(i => (i.label + ' ' + i.sub).toLowerCase().includes(q.toLowerCase())) : allItems.slice(0, 12);
+        _wizardSelectedIdx = 0;
+        results.innerHTML = filtered.map((item, i) => `<div class="wizard-result${i === 0 ? ' selected' : ''}" data-idx="${i}"><div>${(item.label || '').replace(/</g,'&lt;')}</div><div class="wizard-result-sub">${(item.sub || '').replace(/</g,'&lt;')}</div></div>`).join('');
+        results.querySelectorAll('.wizard-result').forEach(el => {
+          el.addEventListener('click', () => {
+            const item = filtered[parseInt(el.dataset.idx)];
+            if (item) executeWizardAction(step, item, flowId);
+          });
+        });
+      }
+      input.addEventListener('input', () => renderResults(input.value));
+      input.addEventListener('keydown', (e) => {
+        const items = results.querySelectorAll('.wizard-result');
+        if (e.key === 'ArrowDown') { e.preventDefault(); _wizardSelectedIdx = Math.min(_wizardSelectedIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('selected', i === _wizardSelectedIdx)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); _wizardSelectedIdx = Math.max(_wizardSelectedIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('selected', i === _wizardSelectedIdx)); }
+        else if (e.key === 'Enter') { const sel = items[_wizardSelectedIdx]; if (sel) sel.click(); }
+      });
+      renderResults('');
+      setTimeout(() => input.focus(), 50);
+    } else {
+      // Options step
+      const opts = step.options || [];
+      body.innerHTML = `<div class="wizard-question">${step.question}</div>
+        <div class="wizard-options" id="wizardOptions">
+          ${opts.map((o, i) => `<div class="wizard-option${i === 0 ? ' selected' : ''}" data-idx="${i}"><span class="wizard-option-icon">${o.icon || '·'}</span>${o.label}<span class="wizard-option-num">${i + 1}</span></div>`).join('')}
+        </div>`;
+      body.querySelectorAll('.wizard-option').forEach((el, i) => {
+        el.addEventListener('click', () => {
+          const opt = opts[i];
+          if (opt.action) { closeWizard(); const fn = WIZARD_ACTIONS[opt.action]; if (fn) fn(); }
+          else if (opt.next) { _wizardHistory.push({ flowId, stepId: opt.next }); renderWizardFlowStep(flowId, opt.next); }
+        });
+      });
+    }
+  }
+
+  function executeWizardAction(step, searchItem, flowId) {
+    closeWizard();
+    const fn = WIZARD_ACTIONS[step.action];
+    if (fn && searchItem._item) fn(searchItem._item);
+  }
+
+  // Global keyboard handler for wizard
+  document.addEventListener('keydown', (e) => {
+    if (!_wizardOpen) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); wizardBack(); return; }
+    // Don't handle arrow/enter if focus is in search input
+    if (document.activeElement?.classList?.contains('wizard-search')) return;
+    const options = document.querySelectorAll('#wizardOptions .wizard-option');
+    if (options.length === 0) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); _wizardSelectedIdx = Math.min(_wizardSelectedIdx + 1, options.length - 1); options.forEach((el, i) => el.classList.toggle('selected', i === _wizardSelectedIdx)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _wizardSelectedIdx = Math.max(_wizardSelectedIdx - 1, 0); options.forEach((el, i) => el.classList.toggle('selected', i === _wizardSelectedIdx)); }
+    else if (e.key === 'Enter') { const sel = options[_wizardSelectedIdx]; if (sel) sel.click(); }
+    else if (e.key >= '1' && e.key <= '9') { const idx = parseInt(e.key) - 1; if (idx < options.length) options[idx].click(); }
+  });
 
   // ===== BATCH OPERATIONS =====
   function toggleBatchMode() {
