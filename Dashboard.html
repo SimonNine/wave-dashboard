@@ -2289,7 +2289,7 @@
 <footer class="wave-footer" id="waveFooter">
   <span class="wave-footer-left" id="waveFooterHome" style="cursor:pointer;" title="Go to My Day">Catch the Wave</span>
   <span class="wave-footer-center">Created by <a href="https://studionine.agency" target="_blank" class="wave-footer-link">Studio Nine Labs</a></span>
-  <span class="wave-footer-right">Version 1.38</span>
+  <span class="wave-footer-right">Version 1.39</span>
 </footer>
 
 <!-- Tracker Column Manager Modal -->
@@ -4767,7 +4767,7 @@
       const input = document.getElementById('wizardSearchInput');
       const results = document.getElementById('wizardSearchResults');
       function renderResults(q) {
-        const filtered = q ? allItems.filter(i => (i.label + ' ' + i.sub).toLowerCase().includes(q.toLowerCase())) : allItems.slice(0, 12);
+        const filtered = (q ? allItems.filter(i => (i.label + ' ' + i.sub).toLowerCase().includes(q.toLowerCase())) : allItems).slice(0, 50);
         _wizardSelectedIdx = 0;
         results.innerHTML = filtered.map((item, i) => `<div class="wizard-result${i === 0 ? ' selected' : ''}" data-idx="${i}"><div>${(item.label || '').replace(/</g,'&lt;')}</div><div class="wizard-result-sub">${(item.sub || '').replace(/</g,'&lt;')}</div></div>`).join('');
         results.querySelectorAll('.wizard-result').forEach(el => {
